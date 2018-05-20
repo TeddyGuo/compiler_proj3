@@ -1,0 +1,20 @@
+------------ --------------------------- ---------------------- 
+Name         Type                        Line Numbers           
+------------ --------------------------- ---------------------- 
+add          function returns int        12
+a            int                          7 
+b            int                         10 
+c            int                          6 
+o.PrintStream java.lang.System.out
+ldc -1
+invokevirtual void java.io.PrintStream.print(int)
+
+getstatic java.io.PrintStream java.lang.System.out
+ldc 1
+invokevirtual void java.io.PrintStream.print(int)
+
+getstatic java.io.PrintStream java.lang.System.out
+ldc "Hello World"
+invokevirtual void java.io.PrintStream.println(int)
+
+ function returns undef      24
