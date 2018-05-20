@@ -18,8 +18,6 @@ Change the format when write info into dump.out line 134-140
 int cur_scope = 0;
 /* current func */
 char *func = "";
-/* current counter */
-int counter = 0;
 
 void create()
 {

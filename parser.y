@@ -27,6 +27,9 @@ May 18, 2018
 Fn is the last part for code generation.
 integer_exp return stringVal.
 I have to deal with the confusion of function name.
+
+May 20, 2018
+Now, I have to deal with the problem between global variable and local variable.
 */
 %{
 #include "symbols.c"
@@ -70,6 +73,7 @@ extern int yylex();
 FILE* javaa;        //file for bytecode
 char* file;         // filename without extension
 char buffer[MAX_LINE_SIZE];
+int counter = 0;
 
 void yyerror(char* msg);
 int             stoi(char *str);
@@ -439,13 +443,16 @@ formal_argument:        ID COLON INT                                    {
                                                                         if (t == NULL)
                                                                         {
                                                                             insert($1, strlen($1), INT_TYPE, linenum, func);
+                                                                            t = lookup($1);
                                                                             p->par_type = INT_TYPE;
                                                                             p->param_name = strdup($1);
                                                                             p->ival = 0; // initialize
                                                                             p->sval = strdup(""); // initialize
                                                                             p->passing = BY_VALUE;
                                                                             p->next = NULL;
-                                                                            p->counter = counter++;
+                                                                            p->counter = counter;
+                                                                            t->counter = counter;    
+                                                                            counter += 1;
                                                                             $$ = p;
                                                                         }
                                                                         else if (t != NULL && strcmp(t->func, PROGRAM) == 0)
@@ -456,7 +463,9 @@ formal_argument:        ID COLON INT                                    {
                                                                             p->sval = strdup(""); // initialize
                                                                             p->passing = BY_VALUE;
                                                                             p->next = NULL;
-                                                                            p->counter = counter++;
+                                                                            p->counter = counter;
+                                                                            t->counter = counter;
+                                                                            counter += 1;
                                                                             $$ = p;
                                                                         }
                                                                         else Trace("line %d: Redeclaration of identifier.\n", linenum);
@@ -762,7 +771,7 @@ function_invocation:       ID L_BRACE R_BRACE   {
                                                         case INT_TYPE:
                                                         $$->inf_type = INT_TYPE;
                                                         $$->st_ival = 1; // temp
-                                                        $$->st_sval = strdup("1");
+                                                        $$->st_sval = strdup("");
                                                         break;
                                                         default:
                                                         $$->inf_type = UNDEF;
@@ -783,10 +792,8 @@ function_invocation:       ID L_BRACE R_BRACE   {
                                                                             case INT_TYPE:
                                                                             $$->inf_type = INT_TYPE;
                                                                             $$->st_ival = 1; // temp
+                                                                            $$->st_sval = strdup("");
                                                                             break;
-                                                                            case LOGIC_TYPE:
-                                                                            $$->inf_type = LOGIC_TYPE;
-                                                                            $$->st_bval = false; // temp
                                                                             default:
                                                                             $$->inf_type = UNDEF;
                                                                         }
@@ -828,6 +835,18 @@ function_invocation:       ID L_BRACE R_BRACE   {
                             ;
 
 integer_exp:    integer_exp ADD integer_exp             {
+                                                        list_t* t1 = lookup($1);
+                                                        list_t* t2 = lookup($3);
+                                                        char a[STRSIZE];
+                                                        
+                                                        if (t1 != NULL && t2 != NULL)
+                                                        {
+                                                            List("  iload "); List(itos(t1->counter, a)); List("\n");
+                                                            List("  iload "); List(itos(t2->counter, a)); List("\n");
+                                                            List("  iadd\n\n");
+                                                        }
+
+                                                        // return part
                                                         int i, j, sum;
                                                         char b[STRSIZE];
                                                         i = stoi($1); j = stoi($3);
@@ -860,11 +879,11 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         }
                                                         }
                 | MINUS integer_exp %prec UMINUS        {
-                                                        int i;
                                                         char b[STRSIZE];
-                                                        i = stoi($2);
-                                                        i = -i;
-                                                        $$ = strdup(itos(i, b));
+                                                        b[0] = '-';
+                                                        b[1] = '\0';
+                                                        strcat(b, $2);
+                                                        $$ = strdup(b);
                                                         }
                 | L_BRACE integer_exp R_BRACE           {
                                                         $$ = strdup($2);
@@ -985,7 +1004,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 if (t->st_type == INT_TYPE || t->st_type == CONST_INT_TYPE)
                                                 {
                                                     char b[STRSIZE];
-                                                    $$ = strdup(itos(t->st_ival, b));
+                                                    $$ = strdup(t->st_name);
                                                 }
                                                 else
                                                 {
