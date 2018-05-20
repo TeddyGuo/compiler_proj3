@@ -30,6 +30,7 @@ I have to deal with the confusion of function name.
 
 May 20, 2018
 Now, I have to deal with the problem between global variable and local variable.
+Try to set a flag to stand for whether the variable is a global variable or not in symbol table.
 */
 %{
 #include "symbols.c"
@@ -193,12 +194,14 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                         if (t_glob == NULL)
                                                                         {
                                                                             insert($3, strlen($3), UNDEF, linenum, func);
+                                                                            t_glob->glob_flag = 1;
                                                                             fprintf(javaa, "field static int %s\n\n", $3);
                                                                         }
-                                                                        else if (t_cur == NULL)
+                                                                        else if (t_cur == NULL || (t_glob != NULL && strcmp(func, PROGRAM) == 1))
                                                                         {
                                                                             insert($3, strlen($3), UNDEF, linenum, func);
                                                                             list_t* t = lookup($3);
+                                                                            t->glob_flag = 0;
                                                                             t->counter = counter;
                                                                             counter++;
                                                                         }
@@ -211,12 +214,14 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                         if (t_glob == NULL)
                                                                         {
                                                                             insert($3, strlen($3), INT_TYPE, linenum, func);
+                                                                            t_glob->glob_flag = 1;
                                                                             fprintf(javaa, "field static int %s\n\n", $3);
                                                                         }
-                                                                        else if (t_cur == NULL)
+                                                                        else if (t_cur == NULL || (t_glob != NULL && strcmp(func, PROGRAM) == 1))
                                                                         {
                                                                             insert($3, strlen($3), INT_TYPE, linenum, func);
                                                                             list_t* t = lookup($3);
+                                                                            t->glob_flag = 0;
                                                                             t->counter = counter;
                                                                             counter++;
                                                                         }
@@ -230,14 +235,16 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                         {
                                                                             insert($3, strlen($3), INT_TYPE, linenum, func);
                                                                             list_t* t = lookup($3);
+                                                                            t->glob_flag = 1;
                                                                             t->st_ival = stoi($5);
                                                                             t->st_sval = strdup($5);
                                                                             fprintf(javaa, "field static int %s = %s\n\n", $3, $5);
                                                                         }
-                                                                        else if (t_cur == NULL)
+                                                                        else if (t_cur == NULL || (t_glob != NULL && strcmp(func, PROGRAM) == 1))
                                                                         {
                                                                             insert($3, strlen($3), INT_TYPE, linenum, func);
                                                                             list_t* t = lookup($3);
+                                                                            t->glob_flag = 0;
                                                                             t->counter = counter;
                                                                             t->st_ival = stoi($5);
                                                                             t->st_sval = strdup($5);
@@ -264,12 +271,14 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                                 if (t_glob == NULL)
                                                                                 {
                                                                                     insert($3, strlen($3), INT_TYPE, linenum, func);
+                                                                                    t_glob->glob_flag = 1;
                                                                                     fprintf(javaa, "field static int %s = %s\n\n", $3, $7);
                                                                                 }
-                                                                                else if (t_cur == NULL)
+                                                                                else if (t_cur == NULL || (t_glob != NULL && strcmp(func, PROGRAM) == 1))
                                                                                 {
                                                                                     insert($3, strlen($3), INT_TYPE, linenum, func);
                                                                                     list_t* t = lookup($3);
+                                                                                    t->glob_flag = 0;
                                                                                     t->counter = counter;
                                                                                     t->st_ival = stoi($7);
                                                                                     t->st_sval = strdup($7);
@@ -841,8 +850,8 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         
                                                         if (t1 != NULL && t2 != NULL)
                                                         {
-                                                            List("  iload "); List(itos(t1->counter, a)); List("\n");
-                                                            List("  iload "); List(itos(t2->counter, a)); List("\n");
+                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
+                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
                                                             List("  iadd\n\n");
                                                         }
 

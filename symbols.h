@@ -99,7 +99,8 @@ typedef struct list{
 	// pointer to next item in the list
 	struct list *next;
 	char *func; // record which function the identifier in
-	int counter;
+	int counter; // record the counter of a variable in the current func
+	short glob_flag; // record whether it is a global variable or not
 }list_t;
 
 /* the hash table */
