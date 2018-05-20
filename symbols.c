@@ -20,8 +20,6 @@ int cur_scope = 0;
 char *func = "";
 /* current counter */
 int counter = 0;
-/* buffer for code generation */
-char* buffer;
 
 void create()
 {

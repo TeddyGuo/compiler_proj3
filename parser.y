@@ -56,6 +56,10 @@ I have to deal with the confusion of function name.
 #define PROGRAM     ""
 #endif
 
+#ifndef MAX_LINE_SIZE
+#define MAX_LINE_SIZE 1024
+#endif
+
 #define true 1
 #define false 0
 
@@ -65,6 +69,7 @@ extern int linenum;
 extern int yylex();
 FILE* javaa;        //file for bytecode
 char* file;         // filename without extension
+char buffer[MAX_LINE_SIZE];
 
 void yyerror(char* msg);
 int             stoi(char *str);
@@ -318,8 +323,7 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                         fprintf(javaa, "max_locals 15\n");
                                                                         fprintf(javaa, "{\n\n");
                                                                         fprintf(javaa, "%s", buffer);
-                                                                        buffer = malloc(sizeof(char) * 1024);
-                                                                        buffer = strdup("");
+                                                                        buffer[0] = '\0';
                                                                         fprintf(javaa, "}\n");
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
@@ -354,8 +358,7 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                         fprintf(javaa, "max_locals 15\n");
                                                                         fprintf(javaa, "{\n\n");
                                                                         fprintf(javaa, "%s", buffer);
-                                                                        buffer = malloc(sizeof(char) * 1024);
-                                                                        buffer = strdup("");
+                                                                        buffer[0] = '\0';
                                                                         fprintf(javaa, "}\n");
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
@@ -377,8 +380,7 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                         fprintf(javaa, "max_locals 15\n");
                                                                         fprintf(javaa, "{\n\n");
                                                                         fprintf(javaa, "%s", buffer);
-                                                                        buffer = malloc(sizeof(char) * 1024);
-                                                                        buffer = strdup("");
+                                                                        buffer[0] = '\0';
                                                                         fprintf(javaa, "}\n");
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
@@ -413,8 +415,7 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                                 fprintf(javaa, "max_locals 15\n");
                                                                                 fprintf(javaa, "{\n\n");
                                                                                 fprintf(javaa, "%s", buffer);
-                                                                                buffer = malloc(sizeof(char) * 1024);
-                                                                                buffer = strdup("");
+                                                                                buffer[0] = '\0';
                                                                                 fprintf(javaa, "}\n");
                                                                             }
                                                                             else Trace("line %d: Redeclaration of identifier.\n", linenum);
@@ -1062,9 +1063,6 @@ char* itos(int i, char b[]){
 
 int main(int argc, char** argv)
 {
-    /* initialize the buffer */
-    buffer = malloc(sizeof(char) * 1024);
-    buffer = strdup("");
     /* create the hash table */
     create();
 
@@ -1101,7 +1099,6 @@ int main(int argc, char** argv)
 
     fclose(yyin);                       /* close input file */
     fprintf(javaa, "}\n");              /* close the class */
-    free(buffer);
     fclose(javaa);                      /* close the javaa */
 
     /* output symbol table */
