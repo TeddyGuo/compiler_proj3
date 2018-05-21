@@ -101,6 +101,7 @@ typedef struct list{
 	char *func; // record which function the identifier in
 	int counter; // record the counter of a variable in the current func
 	short glob_flag; // record whether it is a global variable or not
+	short arg_flag; // record whether it is a argument or not
 }list_t;
 
 /* the hash table */
