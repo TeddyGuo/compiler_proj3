@@ -194,6 +194,7 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                         if (t_glob == NULL)
                                                                         {
                                                                             insert($3, strlen($3), UNDEF, linenum, func);
+                                                                            t_glob = lookup($3);
                                                                             t_glob->glob_flag = 1;
                                                                             fprintf(javaa, "field static int %s\n\n", $3);
                                                                         }
@@ -214,6 +215,7 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                         if (t_glob == NULL)
                                                                         {
                                                                             insert($3, strlen($3), INT_TYPE, linenum, func);
+                                                                            t_glob = lookup($3);
                                                                             t_glob->glob_flag = 1;
                                                                             fprintf(javaa, "field static int %s\n\n", $3);
                                                                         }
@@ -271,6 +273,7 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                                 if (t_glob == NULL)
                                                                                 {
                                                                                     insert($3, strlen($3), INT_TYPE, linenum, func);
+                                                                                    t_glob = lookup($3);
                                                                                     t_glob->glob_flag = 1;
                                                                                     fprintf(javaa, "field static int %s = %s\n\n", $3, $7);
                                                                                 }
@@ -337,6 +340,7 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                         fprintf(javaa, "{\n\n");
                                                                         fprintf(javaa, "%s", buffer);
                                                                         buffer[0] = '\0';
+                                                                        fprintf(javaa, "  return\n");
                                                                         fprintf(javaa, "}\n");
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
@@ -372,6 +376,7 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                         fprintf(javaa, "{\n\n");
                                                                         fprintf(javaa, "%s", buffer);
                                                                         buffer[0] = '\0';
+                                                                        fprintf(javaa, "  return\n");
                                                                         fprintf(javaa, "}\n");
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
@@ -511,24 +516,62 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                     }
                 | PRINT integer_exp SEMICOLON   {
-                                                List("getstatic java.io.PrintStream java.lang.System.out\n");
-                                                List("ldc "); List($2); List("\n");
-                                                List("invokevirtual void java.io.PrintStream.print(int)\n\n");
+                                                List("  getstatic java.io.PrintStream java.lang.System.out\n");
+                                                char name[STRSIZE];
+                                                int neg = 0;
+                                                if ($2[0] == '-')
+                                                {
+                                                    neg = 1; // judge whether it is a negative number or not
+                                                    for (int i = 1; i < strlen($2); i++) name[i - 1] = $2[i];
+                                                    name[strlen($2) - 1] = '\0';
+                                                }else for (int i = 0; i < strlen($2); i++) name[i] = $2[i];
+                                                name[strlen($2)] = '\0';
+                                                
+                                                list_t* t = lookup(name);
+                                                if (t->glob_flag == 1)
+                                                {
+                                                    List("  getstatic int "); List(file); List("."); List(t->st_name); List("\n");
+                                                    if (neg == 1) List("  ineg\n");
+                                                }
+                                                else
+                                                {
+                                                    List("  ldc "); List($2); List("\n");
+                                                }
+                                                List("  invokevirtual void java.io.PrintStream.print(int)\n\n");
                                                 }       
                 | PRINT string_exp SEMICOLON    {
-                                                List("getstatic java.io.PrintStream java.lang.System.out\n");
-                                                List("ldc "); List($2); List("\n");
-                                                List("invokevirtual void java.io.PrintStream.print(int)\n\n");
+                                                List("  getstatic java.io.PrintStream java.lang.System.out\n");
+                                                List("  ldc "); List($2); List("\n");
+                                                List("  invokevirtual void java.io.PrintStream.print(int)\n\n");
                                                 }
                 | PRINTLN integer_exp SEMICOLON {
-                                                List("getstatic java.io.PrintStream java.lang.System.out\n");
-                                                List("ldc "); List($2); List("\n");
-                                                List("invokevirtual void java.io.PrintStream.println(int)\n\n");
+                                                List("  getstatic java.io.PrintStream java.lang.System.out\n");
+                                                char name[STRSIZE];
+                                                int neg = 0;
+                                                if ($2[0] == '-')
+                                                {
+                                                    neg = 1; // judge whether it is a negative number or not
+                                                    for (int i = 1; i < strlen($2); i++) name[i - 1] = $2[i];
+                                                    name[strlen($2) - 1] = '\0';
+                                                }else for (int i = 0; i < strlen($2); i++) name[i] = $2[i];
+                                                name[strlen($2)] = '\0';
+                                                
+                                                list_t* t = lookup(name);
+                                                if (t->glob_flag == 1)
+                                                {
+                                                    List("  getstatic int "); List(file); List("."); List(t->st_name); List("\n");
+                                                    if (neg == 1) List("  ineg\n");
+                                                }
+                                                else 
+                                                {
+                                                    List("  ldc "); List($2); List("\n");
+                                                }
+                                                List("  invokevirtual void java.io.PrintStream.println(int)\n\n");
                                                 }
                 | PRINTLN string_exp SEMICOLON  {
-                                                List("getstatic java.io.PrintStream java.lang.System.out\n");
-                                                List("ldc "); List($2); List("\n");
-                                                List("invokevirtual void java.io.PrintStream.println(int)\n\n");
+                                                List("  getstatic java.io.PrintStream java.lang.System.out\n");
+                                                List("  ldc "); List($2); List("\n");
+                                                List("  invokevirtual void java.io.PrintStream.println(int)\n\n");
                                                 }
                 | RETURN SEMICOLON              {
                                                 List("  return\n\n");
