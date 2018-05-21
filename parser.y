@@ -31,6 +31,9 @@ I have to deal with the confusion of function name.
 May 20, 2018
 Now, I have to deal with the problem between global variable and local variable.
 Try to set a flag to stand for whether the variable is a global variable or not in symbol table.
+
+May 21, 2018
+Now, try to solve simple statement.
 */
 %{
 #include "symbols.c"
@@ -788,7 +791,7 @@ comma_separated_exp:    ID                                  {
                                                                         t->sval = strdup(t_glob->st_sval);
                                                                     }
                                                                 }
-                                                                else if (t_cur != NULL)
+                                                                else if (t_cur != NULL && strcmp(t_cur->func, PROGRAM) == 1)
                                                                 {
                                                                     if (t_cur->st_type == INT_TYPE)
                                                                     {
@@ -805,6 +808,7 @@ comma_separated_exp:    ID                                  {
                                                             }
                         | INTEGER                           {
                                                                 Param *t = malloc(sizeof(Param));
+                                                                t->param_name = strdup($1);
                                                                 t->ival = stoi($1);
                                                                 t->sval = strdup($1);
                                                                 t->par_type = INT_TYPE;
@@ -861,11 +865,25 @@ function_invocation:       ID L_BRACE R_BRACE   {
                                                                                 Trace("line %d: The numbers of parameters are different.\n", linenum);
                                                                                 break;
                                                                             }
+                                                                            else
+                                                                            {
+                                                                                list_t* temp = lookup(t2->param_name);
+                                                                                if (temp != NULL && temp->glob_flag == 1)
+                                                                                {
+                                                                                    List("  getstatic int "); List(file); List("."); List(temp->st_name); List("\n");
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    List("  sipush "); List(t2->sval); List("\n");
+                                                                                }
+                                                                            }
+
                                                                             if (t1->par_type != t2->par_type)
                                                                             {
                                                                                 Trace("line %d: The types of parameters are different.\n", linenum);
                                                                                 break;
                                                                             }
+
                                                                             count++;
                                                                             t1 = t1->next;
                                                                             t2 = t2->next;
@@ -878,6 +896,17 @@ function_invocation:       ID L_BRACE R_BRACE   {
                                                                         }
                                                                         printf("Num of pars is %d\n", t->num_of_pars);
                                                                         printf("Num of that user give is %d\n", count);
+
+                                                                        if (t->num_of_pars == count)
+                                                                        {
+                                                                            List("  invokestatic int "); List(file); List("."); List(t->st_name); List("(");
+                                                                            for (int i = 0; i < t->num_of_pars - 1; i++)
+                                                                            {
+                                                                                List("int ");
+                                                                            }
+                                                                            List("int)\n");
+                                                                        }
+                                                                        else yyerror("The numbers of parameters are different.");
                                                                     }
                                                                     else
                                                                     {
