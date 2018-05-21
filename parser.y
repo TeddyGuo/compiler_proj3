@@ -33,7 +33,7 @@ Now, I have to deal with the problem between global variable and local variable.
 Try to set a flag to stand for whether the variable is a global variable or not in symbol table.
 
 May 21, 2018
-Now, try to solve simple statement.
+Now, try to solve expression, conditional, and loop.
 */
 %{
 #include "symbols.c"
@@ -254,12 +254,12 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                             t->st_ival = stoi($5);
                                                                             t->st_sval = strdup($5);
                                                                             counter++;
-                                                                            List("sipush ");
+                                                                            List("  sipush ");
                                                                             
                                                                             List($5);
                                                                             
                                                                             List("\n");
-                                                                            List("istore_");
+                                                                            List("  istore_");
                                                                             
                                                                             char n[STRSIZE];
                                                                             sprintf(n, "%d", t->counter);
@@ -289,12 +289,12 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                                     t->st_ival = stoi($7);
                                                                                     t->st_sval = strdup($7);
                                                                                     counter++;
-                                                                                    List("sipush ");
+                                                                                    List("  sipush ");
                                                                                     
                                                                                     List($7);
                                                                                     
                                                                                     List("\n");
-                                                                                    List("istore_");
+                                                                                    List("  istore_");
 
                                                                                     char n[STRSIZE];
                                                                                     sprintf(n, "%d", t->counter);
@@ -494,29 +494,29 @@ statements:     statements statement
                 ;
 
 statement:      ID ASSIGN integer_exp SEMICOLON                     {
-                                                                    list_t* t_glob = lookup_scope($1, 0);
                                                                     list_t* t_cur = lookup($1);
                                                                     if (t_cur != NULL && (t_cur->st_type == INT_TYPE || t_cur->st_type == UNDEF))
                                                                     {
                                                                         t_cur->st_type = INT_TYPE;
                                                                         t_cur->st_ival = stoi($3);
                                                                         t_cur->st_sval = strdup($3);
+
+                                                                        if (t_cur->glob_flag == 1)
+                                                                        {
+                                                                            List("  putstatic int "); List(file); List("."); List(t_cur->st_name); List("\n\n");
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            List("  sipush "); List($3); List("\n");
+                                                                            char a[STRSIZE];
+                                                                            List("  istore_"); List(itos(t_cur->counter, a)); List("\n\n");
+                                                                        }
                                                                     }
                                                                     else if (t_cur != NULL && (t_cur->st_type != INT_TYPE || t_cur->st_type != UNDEF))
                                                                     {
                                                                         Trace("line %d: The type does not match.\n", linenum);
                                                                     }
-                                                                    else if (t_cur == NULL && t_glob != NULL && (t_glob->st_type == INT_TYPE || t_glob->st_type == UNDEF))
-                                                                    {
-                                                                        t_glob->st_type = INT_TYPE;
-                                                                        t_glob->st_ival = stoi($3);
-                                                                        t_glob->st_sval = strdup($3);
-                                                                    }
-                                                                    else if (t_cur == NULL && t_glob != NULL && (t_glob->st_type != INT_TYPE || t_glob->st_type != UNDEF))
-                                                                    {
-                                                                        Trace("line %d: The type does not match.\n", linenum);
-                                                                    }
-                                                                    else Trace("line %d: Redeclaration of identifier.\n", linenum);
+                                                                    else Trace("line %d: Identifier does not define.\n", linenum);
                                                                     }
                 | PRINT integer_exp SEMICOLON   {
                                                 List("  getstatic java.io.PrintStream java.lang.System.out\n");
