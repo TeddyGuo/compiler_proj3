@@ -371,6 +371,21 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                             }
                                                                             ifFlag = 0;
                                                                         }
+                                                                        else
+                                                                        {
+                                                                            for (int i = 0; i < 4; i++)
+                                                                            {
+                                                                                if (out[i] != NULL)
+                                                                                {
+                                                                                    fprintf(javaa, "%s", out[i]);
+                                                                                    out[i][0] = '\0';
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    break;
+                                                                                }
+                                                                            }
+                                                                        }
                                                                         buffer[0] = '\0';
                                                                         fprintf(javaa, "  return\n");
                                                                         fprintf(javaa, "}\n");
@@ -1893,7 +1908,7 @@ int main(int argc, char** argv)
         yyerror("Parsing error !");     /* syntax error */
 
     fclose(yyin);                       /* close input file */
-    fprintf(javaa, "}\n");              /* close the class */
+    fprintf(javaa, "\n}\n");              /* close the class */
     fclose(javaa);                      /* close the javaa */
 
     /* output symbol table */
