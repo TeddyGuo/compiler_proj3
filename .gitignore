@@ -6,5 +6,5 @@ parser
 parser.tab.h
 dump.out
 *.jasm
-javaa/
-javaaPortable/
+/javaa/*
+/javaaPortable/*
