@@ -42,6 +42,7 @@ line 1181, think about how to solve that UMINUS in print statement.
 
 May 22, 2018
 try to deal with loop and local variable problem cause now every variable is global
+Now, try to solve loop and UMINUS problem
 */
 %{
 #include "symbols.c"
@@ -84,16 +85,28 @@ extern int linenum;
 extern int yylex();
 FILE* javaa;        //file for bytecode
 char* file;         // filename without extension
+
 char arg[STRSIZE][STRSIZE]; // record the names of arguments in the current function
+
 char ifstmt[MAX_LINE_SIZE]; // if statement buffer
 short ifFlag = 0;           // 1 means if only, 2 means if plus else
+
+char loopstmt[MAX_LINE_SIZE]; // while statement buffer
+short loopFlag = 0; // 1 means while statement exist now
+
 char out[4][MAX_LINE_SIZE]; // print buffer
+
 char opbuf[4][MAX_LINE_SIZE];  // operator buffer
 short opcount = 0;
-short cur_block = 0;
-char buffer[MAX_LINE_SIZE];
-int counter = 0;
-char constant[STRSIZE][STRSIZE];
+
+short cur_block = 0; // for ifstmt and loopstmt
+
+char buffer[MAX_LINE_SIZE]; // reserve the code generation in the func
+
+int counter = 0; // cause we have some local variables, I use this counter to record the number of next one.
+char constant[STRSIZE][STRSIZE]; // record constant for generation
+
+int L = 0; // stage counter
 
 void yyerror(char* msg);
 int             stoi(char *str);
@@ -730,25 +743,31 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                 ;
 
 conditional:    IF L_BRACE bool_exp R_BRACE block ELSE block    {
-                                                                strcat(ifstmt, "L1:\n  ifeq L2\n");
-                                                                strcat(out[1], "  goto L3\n\nL2:\n");
+                                                                char l[STRSIZE];
+                                                                strcat(ifstmt, "L"); strcat(ifstmt, itos(L, l)); strcat(ifstmt, ":\n  ifeq L"); strcat(ifstmt, itos(L+1, l)); strcat(ifstmt, "\n");
+                                                                strcat(out[1], "  goto L"); strcat(out[1], itos(L+2, l)); strcat(out[1], "\n\nL"); strcat(out[1], itos(L+1, l)); strcat(out[1], ":\n");
                                                                 char b[MAX_LINE_SIZE];
                                                                 b[0] = '\0';
-                                                                strcat(b, "L3:\n");
+                                                                strcat(b, "L"); strcat(b, itos(L+2, l)); strcat(b, ":\n");
                                                                 strcat(b, out[0]);
                                                                 strncpy(out[0], b, MAX_LINE_SIZE);
                                                                 cur_block = 0;
                                                                 ifFlag = 2;
+                                                                L += 2;
                                                                 }
                 | IF L_BRACE bool_exp R_BRACE block             {
-                                                                strcat(ifstmt, "L1:\n  ifeq L2\n");
-                                                                strcat(out[0], "L2:\n");
+                                                                char l[STRSIZE];
+                                                                strcat(ifstmt, "L"); strcat(ifstmt, itos(L, l)); strcat(ifstmt, ":\n  ifeq L"); strcat(ifstmt, itos(L+1, l)); strcat(ifstmt, "\n");
+                                                                strcat(out[0], "L"); strcat(out[0], itos(L+1, l)); strcat(out[0], ":\n");
                                                                 cur_block = 0;
                                                                 ifFlag = 1;
+                                                                L += 1;
                                                                 }
                 ;
 
-loop:           WHILE L_BRACE bool_exp R_BRACE block
+loop:           WHILE L_BRACE bool_exp R_BRACE block    {
+                                                        
+                                                        }
                 ;
 
 bool_exp:       integer_exp                             {
@@ -1297,10 +1316,12 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                             List("  sipush "); List($3); List("\n");
                                                         }
                                                         List("  isub\n");
-                                                        List("  iflt L0\n");
+                                                        char l[STRSIZE];
+                                                        List("  iflt L"); List(itos(L, l)); List("\n");
                                                         List("  iconst_0\n");
-                                                        List("  goto L1\n");
-                                                        List("L0:\n"); List("  iconst_1\n");
+                                                        List("  goto L"); List(itos(L+1, l)); List("\n");
+                                                        List("L"); List(l); List(":\n"); List("  iconst_1\n");
+                                                        L++;
                                                                                        
                                                         // return part
                                                         int i, j;
@@ -1365,10 +1386,12 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                     List("  sipush "); List($3); List("\n");
                                                 }
                                                 List("  isub\n");
-                                                List("  ifle L0\n");                                                
+                                                char l[STRSIZE];
+                                                List("  ifle L"); List(itos(L, l)); List("\n");
                                                 List("  iconst_0\n");
-                                                List("  goto L1\n");
-                                                List("L0:\n"); List("  iconst_1\n");
+                                                List("  goto L"); List(itos(L+1, l)); List("\n");
+                                                List("L"); List(l); List(":\n"); List("  iconst_1\n");
+                                                L++;
 
                                                 // return part
                                                 int i, j;
@@ -1433,10 +1456,12 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                     List("  sipush "); List($3); List("\n");
                                                 }
                                                 List("  isub\n");
-                                                List("  ifeq L0\n");
+                                                char l[STRSIZE];
+                                                List("  ifeq L"); List(itos(L, l)); List("\n");
                                                 List("  iconst_0\n");
-                                                List("  goto L1\n");
-                                                List("L0:\n"); List("  iconst_1\n");
+                                                List("  goto L"); List(itos(L+1, l)); List("\n");
+                                                List("L"); List(l); List(":\n"); List("  iconst_1\n");
+                                                L++;
 
                                                 // return part
                                                 int i, j;
@@ -1501,10 +1526,12 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                     List("  sipush "); List($3); List("\n");
                                                 }
                                                 List("  isub\n");
-                                                List("  ifge L0\n");
+                                                char l[STRSIZE];
+                                                List("  ifge L"); List(itos(L, l)); List("\n");
                                                 List("  iconst_0\n");
-                                                List("  goto L1\n");
-                                                List("L0:\n"); List("  iconst_1\n");
+                                                List("  goto L"); List(itos(L+1, l)); List("\n");
+                                                List("L"); List(l); List(":\n"); List("  iconst_1\n");
+                                                L++;
 
                                                 // return part
                                                 int i, j;
@@ -1569,10 +1596,12 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         List("  sipush "); List($3); List("\n");
                                                     }
                                                     List("  isub\n");
-                                                    List("  ifgt L0\n");
+                                                    char l[STRSIZE];
+                                                    List("  ifgt L"); List(itos(L, l)); List("\n");
                                                     List("  iconst_0\n");
-                                                    List("  goto L1\n");
-                                                    List("L0:\n"); List("  iconst_1\n");
+                                                    List("  goto L"); List(itos(L+1, l)); List("\n");
+                                                    List("L"); List(l); List(":\n"); List("  iconst_1\n");
+                                                    L++;
 
                                                     // return part
                                                     int i, j;
@@ -1637,10 +1666,12 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                     List("  sipush "); List($3); List("\n");
                                                 }
                                                 List("  isub\n");
-                                                List("  ifne L0\n");
+                                                char l[STRSIZE];
+                                                List("  ifne L"); List(itos(L, l)); List("\n");
                                                 List("  iconst_0\n");
-                                                List("  goto L1\n");
-                                                List("L0:\n"); List("  iconst_1\n");
+                                                List("  goto L"); List(itos(L+1, l)); List("\n");
+                                                List("L"); List(l); List(":\n"); List("  iconst_1\n");
+                                                L++;
 
                                                 // return part
                                                 int i, j;
