@@ -1320,7 +1320,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         List("  iflt L"); List(itos(L, l)); List("\n");
                                                         List("  iconst_0\n");
                                                         List("  goto L"); List(itos(L+1, l)); List("\n");
-                                                        List("L"); List(l); List(":\n"); List("  iconst_1\n");
+                                                        List("L"); List(itos(L, l)); List(":\n"); List("  iconst_1\n");
                                                         L++;
                                                                                        
                                                         // return part
@@ -1390,7 +1390,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 List("  ifle L"); List(itos(L, l)); List("\n");
                                                 List("  iconst_0\n");
                                                 List("  goto L"); List(itos(L+1, l)); List("\n");
-                                                List("L"); List(l); List(":\n"); List("  iconst_1\n");
+                                                List("L"); List(itos(L, l)); List(":\n"); List("  iconst_1\n");
                                                 L++;
 
                                                 // return part
@@ -1460,7 +1460,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 List("  ifeq L"); List(itos(L, l)); List("\n");
                                                 List("  iconst_0\n");
                                                 List("  goto L"); List(itos(L+1, l)); List("\n");
-                                                List("L"); List(l); List(":\n"); List("  iconst_1\n");
+                                                List("L"); List(itos(L, l)); List(":\n"); List("  iconst_1\n");
                                                 L++;
 
                                                 // return part
@@ -1530,7 +1530,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 List("  ifge L"); List(itos(L, l)); List("\n");
                                                 List("  iconst_0\n");
                                                 List("  goto L"); List(itos(L+1, l)); List("\n");
-                                                List("L"); List(l); List(":\n"); List("  iconst_1\n");
+                                                List("L"); List(itos(L, l)); List(":\n"); List("  iconst_1\n");
                                                 L++;
 
                                                 // return part
@@ -1600,7 +1600,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                     List("  ifgt L"); List(itos(L, l)); List("\n");
                                                     List("  iconst_0\n");
                                                     List("  goto L"); List(itos(L+1, l)); List("\n");
-                                                    List("L"); List(l); List(":\n"); List("  iconst_1\n");
+                                                    List("L"); List(itos(L, l)); List(":\n"); List("  iconst_1\n");
                                                     L++;
 
                                                     // return part
@@ -1670,7 +1670,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 List("  ifne L"); List(itos(L, l)); List("\n");
                                                 List("  iconst_0\n");
                                                 List("  goto L"); List(itos(L+1, l)); List("\n");
-                                                List("L"); List(l); List(":\n"); List("  iconst_1\n");
+                                                List("L"); List(itos(L, l)); List(":\n"); List("  iconst_1\n");
                                                 L++;
 
                                                 // return part
