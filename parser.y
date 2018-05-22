@@ -39,6 +39,9 @@ Now, it is time to solve conditional and loop.
 line 475 problem about bus error
 line 736, now I have to clarify why it is going like this.
 line 1181, think about how to solve that UMINUS in print statement.
+
+May 22, 2018
+try to deal with loop and local variable problem cause now every variable is global
 */
 %{
 #include "symbols.c"
@@ -90,6 +93,7 @@ short opcount = 0;
 short cur_block = 0;
 char buffer[MAX_LINE_SIZE];
 int counter = 0;
+char constant[STRSIZE][STRSIZE];
 
 void yyerror(char* msg);
 int             stoi(char *str);
@@ -166,13 +170,13 @@ block:          start local_declaration statements end
                 ;
 
 end:            R_B                                                 {
-                                                                    hide_scope();
+                                                                    incr_scope();
                                                                     counter = 0;
                                                                     }
                 ;
 
 start:          L_B                                                 {
-                                                                    incr_scope();
+                                                                    hide_scope();
                                                                     }
                 ;
 
@@ -185,6 +189,16 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                         insert($2, strlen($2), CONST_INT_TYPE, linenum, func);
                                                                         list_t* t = lookup($2);
                                                                         t->st_ival = stoi($4);
+                                                                        t->st_sval = strdup($4);
+                                                                        for (int i = 0; i < STRSIZE; i++)
+                                                                        {
+                                                                            if (constant[i] != NULL)
+                                                                            {
+                                                                                constant[i][0] = '\0';
+                                                                                strncpy(constant[i], $2, strlen($2));
+                                                                                break;
+                                                                            }
+                                                                        }
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                     }        
@@ -197,6 +211,16 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                                 insert($2, strlen($2), CONST_INT_TYPE, linenum, func);
                                                                                 list_t* t = lookup($2);
                                                                                 t->st_ival = stoi($6);
+                                                                                t->st_sval = strdup($6);
+                                                                                for (int i = 0; i < STRSIZE; i++)
+                                                                                {
+                                                                                    if (constant[i] != NULL)
+                                                                                    {
+                                                                                        constant[i][0] = '\0';
+                                                                                        strncpy(constant[i], $2, strlen($2));
+                                                                                        break;
+                                                                                    }
+                                                                                }
                                                                             }
                                                                             else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                             }
@@ -206,20 +230,20 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                         list_t* t_glob = lookup_scope($3, 0);
                                                                         list_t* t_cur = lookup($3);
 
-                                                                        if (t_glob == NULL)
-                                                                        {
-                                                                            insert($3, strlen($3), UNDEF, linenum, func);
-                                                                            t_glob = lookup($3);
-                                                                            t_glob->glob_flag = 1;
-                                                                            fprintf(javaa, "field static int %s\n", $3);
-                                                                        }
-                                                                        else if (t_cur == NULL || (t_glob != NULL && strcmp(func, PROGRAM) == 1))
+                                                                        if (t_cur == NULL && cur_scope == 1)
                                                                         {
                                                                             insert($3, strlen($3), UNDEF, linenum, func);
                                                                             list_t* t = lookup($3);
                                                                             t->glob_flag = 0;
                                                                             t->counter = counter;
                                                                             counter++;
+                                                                        }
+                                                                        if (t_glob == NULL && cur_scope == 0)
+                                                                        {
+                                                                            insert($3, strlen($3), UNDEF, linenum, func);
+                                                                            t_glob = lookup($3);
+                                                                            t_glob->glob_flag = 1;
+                                                                            fprintf(javaa, "field static int %s\n", $3);
                                                                         }
                                                                         else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                         }
@@ -227,14 +251,7 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                         list_t* t_glob = lookup_scope($3, 0);
                                                                         list_t* t_cur = lookup($3);
 
-                                                                        if (t_glob == NULL)
-                                                                        {
-                                                                            insert($3, strlen($3), INT_TYPE, linenum, func);
-                                                                            t_glob = lookup($3);
-                                                                            t_glob->glob_flag = 1;
-                                                                            fprintf(javaa, "field static int %s\n", $3);
-                                                                        }
-                                                                        else if (t_cur == NULL || (t_glob != NULL && strcmp(func, PROGRAM) == 1))
+                                                                        if (t_cur == NULL && cur_scope == 1)
                                                                         {
                                                                             insert($3, strlen($3), INT_TYPE, linenum, func);
                                                                             list_t* t = lookup($3);
@@ -242,22 +259,20 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                             t->counter = counter;
                                                                             counter++;
                                                                         }
+                                                                        else if (t_glob == NULL && cur_scope == 0)
+                                                                        {
+                                                                            insert($3, strlen($3), INT_TYPE, linenum, func);
+                                                                            t_glob = lookup($3);
+                                                                            t_glob->glob_flag = 1;
+                                                                            fprintf(javaa, "field static int %s\n", $3);
+                                                                        }
                                                                         else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                         }
                         | LET MUT ID ASSIGN integer_exp SEMICOLON       {
                                                                         list_t* t_glob = lookup_scope($3, 0);
                                                                         list_t* t_cur = lookup($3);
 
-                                                                        if (t_glob == NULL)
-                                                                        {
-                                                                            insert($3, strlen($3), INT_TYPE, linenum, func);
-                                                                            list_t* t = lookup($3);
-                                                                            t->glob_flag = 1;
-                                                                            t->st_ival = stoi($5);
-                                                                            t->st_sval = strdup($5);
-                                                                            fprintf(javaa, "field static int %s = %s\n", $3, $5);
-                                                                        }
-                                                                        else if (t_cur == NULL || (t_glob != NULL && strcmp(func, PROGRAM) == 1))
+                                                                        if (t_cur == NULL && cur_scope == 1)
                                                                         {
                                                                             insert($3, strlen($3), INT_TYPE, linenum, func);
                                                                             list_t* t = lookup($3);
@@ -279,20 +294,22 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                             
                                                                             List("\n\n");
                                                                         }
+                                                                        else if (t_glob == NULL && cur_scope == 0)
+                                                                        {
+                                                                            insert($3, strlen($3), INT_TYPE, linenum, func);
+                                                                            list_t* t = lookup($3);
+                                                                            t->glob_flag = 1;
+                                                                            t->st_ival = stoi($5);
+                                                                            t->st_sval = strdup($5);
+                                                                            fprintf(javaa, "field static int %s = %s\n", $3, $5);
+                                                                        }
                                                                         else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                         }        
                         | LET MUT ID COLON INT ASSIGN integer_exp SEMICOLON     {
                                                                                 list_t* t_glob = lookup_scope($3, 0);
                                                                                 list_t* t_cur = lookup($3);
 
-                                                                                if (t_glob == NULL)
-                                                                                {
-                                                                                    insert($3, strlen($3), INT_TYPE, linenum, func);
-                                                                                    t_glob = lookup($3);
-                                                                                    t_glob->glob_flag = 1;
-                                                                                    fprintf(javaa, "field static int %s = %s\n", $3, $7);
-                                                                                }
-                                                                                else if (t_cur == NULL || (t_glob != NULL && strcmp(func, PROGRAM) == 1))
+                                                                                if (t_cur == NULL && cur_scope == 1)
                                                                                 {
                                                                                     insert($3, strlen($3), INT_TYPE, linenum, func);
                                                                                     list_t* t = lookup($3);
@@ -313,6 +330,13 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                                     List(n);
 
                                                                                     List("\n\n");
+                                                                                }
+                                                                                else if (t_glob == NULL && cur_scope == 0)
+                                                                                {
+                                                                                    insert($3, strlen($3), INT_TYPE, linenum, func);
+                                                                                    t_glob = lookup($3);
+                                                                                    t_glob->glob_flag = 1;
+                                                                                    fprintf(javaa, "field static int %s = %s\n", $3, $7);
                                                                                 }
                                                                                 else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                                 }
@@ -1897,7 +1921,7 @@ int main(int argc, char** argv)
     fprintf(javaa, "/*-------------------------------------------------*/\n");
     fprintf(javaa, "/*              Java Assembly Code                 */\n");
     fprintf(javaa, "/*-------------------------------------------------*/\n\n");
-    fprintf(javaa, "class %s\n{\n\n", file);   /* make the file name as the class name */
+    fprintf(javaa, "class %s\n{\n", file);   /* make the file name as the class name */
     /*-----------------------------------------------------------------------------------*/
 
     int flag;
