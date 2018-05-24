@@ -43,6 +43,9 @@ line 1181, think about how to solve that UMINUS in print statement.
 May 22, 2018
 try to deal with loop and local variable problem cause now every variable is global
 Now, try to solve loop and UMINUS problem
+
+May 24, 2018
+
 */
 %{
 #include "symbols.c"
@@ -92,7 +95,7 @@ char ifstmt[MAX_LINE_SIZE]; // if statement buffer
 short ifFlag = 0;           // 1 means if only, 2 means if plus else
 
 char loopstmt[MAX_LINE_SIZE]; // while statement buffer
-short loopFlag = 0; // 1 means while statement exist now
+short loopFlag = 0; // -1 means while statement exist now
 
 char out[4][MAX_LINE_SIZE]; // print buffer
 
@@ -391,8 +394,17 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                         fprintf(javaa, "max_locals 15\n");
                                                                         fprintf(javaa, "{\n\n");
                                                                         fprintf(javaa, "%s", buffer);
-                                                                        fprintf(javaa, "%s", ifstmt);
-                                                                        ifstmt[0] = '\0';
+                                                                        if (ifFlag != 0)
+                                                                        {
+                                                                            fprintf(javaa, "%s", ifstmt);
+                                                                            ifstmt[0] = '\0';
+                                                                        }
+                                                                        if (strcmp(loopstmt, "") != 0)
+                                                                        {   
+                                                                            fprintf(javaa, "%s", loopstmt);
+                                                                            loopstmt[0] = '\0';
+                                                                        }
+
                                                                         if (ifFlag == 2)
                                                                         {
                                                                             fprintf(javaa, "%s", out[1]);
@@ -459,8 +471,17 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                         fprintf(javaa, "max_locals 15\n");
                                                                         fprintf(javaa, "{\n\n");
                                                                         fprintf(javaa, "%s", buffer);
-                                                                        fprintf(javaa, "%s", ifstmt);
-                                                                        ifstmt[0] = '\0';
+                                                                        if (ifFlag != 0)
+                                                                        {
+                                                                            fprintf(javaa, "%s", ifstmt);
+                                                                            ifstmt[0] = '\0';
+                                                                            ifFlag = 0;
+                                                                        }
+                                                                        if (strcmp(loopstmt, "") != 0)
+                                                                        {   
+                                                                            fprintf(javaa, "%s", loopstmt);
+                                                                            loopstmt[0] = '\0';
+                                                                        }
                                                                         
                                                                         for (int i = 2; i >= 0; i--)
                                                                         {   
@@ -500,9 +521,18 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                         fprintf(javaa, "max_locals 15\n");
                                                                         fprintf(javaa, "{\n\n");
                                                                         fprintf(javaa, "%s", buffer);
-                                                                        fprintf(javaa, "%s", ifstmt);
-                                                                        ifstmt[0] = '\0';
-                                                                        
+                                                                        if (ifFlag != 0)
+                                                                        {
+                                                                            fprintf(javaa, "%s", ifstmt);
+                                                                            ifstmt[0] = '\0';
+                                                                            ifFlag = 0;
+                                                                        }
+                                                                        if (strcmp(loopstmt, "") != 0)
+                                                                        {   
+                                                                            fprintf(javaa, "%s", loopstmt);
+                                                                            loopstmt[0] = '\0';
+                                                                        }
+
                                                                         for (int i = 2; i >= 0; i--)
                                                                         {   
                                                                             if (out[i] != NULL)
@@ -550,8 +580,17 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                                 fprintf(javaa, "max_locals 15\n");
                                                                                 fprintf(javaa, "{\n\n");
                                                                                 fprintf(javaa, "%s", buffer);
-                                                                                fprintf(javaa, "%s", ifstmt);
-                                                                                ifstmt[0] = '\0';
+                                                                                if (ifFlag != 0)
+                                                                                {
+                                                                                    fprintf(javaa, "%s", ifstmt);
+                                                                                    ifstmt[0] = '\0';
+                                                                                    ifFlag = 0;
+                                                                                }
+                                                                                if (strcmp(loopstmt, "") != 0)
+                                                                                {   
+                                                                                    fprintf(javaa, "%s", loopstmt);
+                                                                                    loopstmt[0] = '\0';
+                                                                                }
                                                                                 
                                                                                 for (int i = 2; i >= 0; i--)
                                                                                 {   
@@ -765,9 +804,26 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE block    {
                                                                 }
                 ;
 
-loop:           WHILE L_BRACE bool_exp R_BRACE block    {
-                                                        
-                                                        }
+while_end:      R_B {
+                        loopFlag = 1;
+                    }
+                ;
+while_start:    L_B {
+                        loopFlag = 0;
+                    }
+                ;
+
+while_block:    while_start local_declaration statements while_end               
+                | while_start local_declaration while_end                         
+                | while_start statements while_end                                
+                | while_start while_end                                           
+                ;
+
+loop:           WHILE L_BRACE bool_exp R_BRACE while_block  {
+                                                            char l[STRSIZE];
+                                                            List("L"); List(itos(L, l)); List(":\n");
+                                                            L += 1;
+                                                            }
                 ;
 
 bool_exp:       integer_exp                             {
@@ -1339,6 +1395,12 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 char a[STRSIZE];
+
+                                                if (loopFlag != 0)
+                                                {
+                                                    char l[STRSIZE];
+                                                    List("L"); List(itos(L, l)); List(":\n");
+                                                }
                                                         
                                                 if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
                                                 {
@@ -1409,6 +1471,12 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 char a[STRSIZE];
+
+                                                if (loopFlag != 0)
+                                                {
+                                                    char l[STRSIZE];
+                                                    List("L"); List(itos(L, l)); List(":\n");
+                                                }
                                                 
                                                 if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
                                                 {
@@ -1479,6 +1547,12 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 char a[STRSIZE];
+
+                                                if (loopFlag != 0)
+                                                {
+                                                    char l[STRSIZE];
+                                                    List("L"); List(itos(L, l)); List(":\n");
+                                                }
                                                 
                                                 if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
                                                 {
@@ -1550,6 +1624,12 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                     list_t* t2 = lookup($3);
                                                     char a[STRSIZE];
                                                     
+                                                    if (loopFlag != 0)
+                                                    {
+                                                        char l[STRSIZE];
+                                                        List("L"); List(itos(L, l)); List(":\n");
+                                                    }
+
                                                     if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
                                                     {
                                                         List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
@@ -1619,6 +1699,12 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 char a[STRSIZE];
+
+                                                if (loopFlag != 0)
+                                                {
+                                                    char l[STRSIZE];
+                                                    List("L"); List(itos(L, l)); List(":\n");
+                                                }
                                                 
                                                 if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
                                                 {
