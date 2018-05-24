@@ -35,6 +35,9 @@ Make ID return yylval.stringVal, instead of yylval.symptr
 
 May 18, 2018
 Make integer return stringVal
+
+May 24, 2018
+Make true and false return stringVal
 */
 %option noyywrap
 
@@ -80,7 +83,7 @@ list_t* temp;
 "else" 		{token("ELSE"); return ELSE;}
 "enum" 		{token("ENUM"); return ENUM;}
 "extern" 	{token("EXTERN"); return EXTERN;}
-"false" 	{token("FALSE"); yylval.boolVal = 0; return FALSE;}
+"false" 	{token("FALSE"); yylval.stringVal = strdup("false"); return FALSE;}
 "float" 	{token("FLOAT"); return FLOAT;}
 "for" 		{token("FOR"); return FOR;}
 "fn" 		{token("FN"); return FN;}
@@ -99,7 +102,7 @@ list_t* temp;
 "static" 	{token("STATIC"); return STATIC;}
 "str" 		{token("STR"); return STR;}
 "struct" 	{token("STRUCT"); return STRUCT;}
-"true" 		{token("TRUE"); yylval.boolVal = 1; return TRUE;}
+"true" 		{token("TRUE"); yylval.stringVal = strdup("true"); return TRUE;}
 "use" 		{token("USE"); return USE;}
 "where" 	{token("WHERE"); return WHERE;}
 "while" 	{token("WHILE"); return WHILE;}

@@ -47,6 +47,8 @@ Now, try to solve loop and UMINUS problem
 May 24, 2018
 Today, I add more blocks for judge whether it is a while_loop or if_els_stmt after some blocks or not.
 Finally, I got a good way to produce java bytecode after I know the principle of bison since it is bottom-up parsing.
+Try to ifstmt and whilestmt
+Try while_loop
 */
 %{
 #include "symbols.c"
@@ -72,17 +74,9 @@ Finally, I got a good way to produce java bytecode after I know the principle of
 #define PARAMSIZE   40
 #endif
 
-/* The global_declaration doesn't have function scope which means it doesn't in any function */
-#ifndef PROGRAM
-#define PROGRAM     ""
-#endif
-
 #ifndef MAX_LINE_SIZE
 #define MAX_LINE_SIZE 1024
 #endif
-
-#define true 1
-#define false 0
 
 #define NORMAL 0
 #define BOOLEXP 1
@@ -121,7 +115,7 @@ void judge(list_t*, list_t*, char*, char arg[STRSIZE][STRSIZE], char*, char*); /
 /* tokens */
 %token <floatVal> REAL
 %token <stringVal> ID STRING INTEGER
-%token <boolVal> TRUE FALSE
+%token <stringVal> TRUE FALSE
 %token INT FLOAT STR BOOL
 %token BREAK CHAR CONTINUE DO ELSE
 %token ENUM EXTERN FOR
@@ -150,7 +144,7 @@ void judge(list_t*, list_t*, char*, char arg[STRSIZE][STRSIZE], char*, char*); /
 
 /* types */
 %type <stringVal> string_exp integer_exp
-%type <boolVal> bool_exp
+%type <stringVal> bool_exp
 %type <parptr> formal_argument formal_arguments comma_separated_exps comma_separated_exp
 %type <symptr> function_invocation
 
@@ -293,7 +287,7 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                             
                                                                             char n[STRSIZE];
                                                                             sprintf(n, "%d", t->counter);
-                                                                            Write("  istore_"); Write(n); Write("\n\n");
+                                                                            Write("  istore "); Write(n); Write("\n\n");
 
                                                                             // put mark for buffer
                                                                             Num(NORMAL);
@@ -327,7 +321,7 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
 
                                                                                     char n[STRSIZE];
                                                                                     sprintf(n, "%d", t->counter);
-                                                                                    Write("  istore_"); Write(n); Write("\n\n");
+                                                                                    Write("  istore "); Write(n); Write("\n\n");
 
                                                                                     // put mark for buffer
                                                                                     Num(NORMAL);
@@ -373,7 +367,7 @@ function:       FN ID fn_start R_BRACE fn_block                     {
 
                                                                         if (strcmp($2, "main") == 0)
                                                                         {
-                                                                            List("\nmethod public static void main(java.lang.String[])\n");
+                                                                            List("\nmethod public static void main (java.lang.String[])\n");
                                                                         }
                                                                         else
                                                                         {
@@ -572,7 +566,7 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                                         {
                                                                             Write("  sipush "); Write($3); Write("\n");
                                                                             char a[STRSIZE];
-                                                                            Write("  istore_"); Write(itos(t->counter, a)); Write("\n\n");
+                                                                            Write("  istore "); Write(itos(t->counter, a)); Write("\n\n");
                                                                         }
 
                                                                         // put mark for buffer
@@ -597,7 +591,7 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                 else if (t != NULL && t->glob_flag == 0)
                                                 {
                                                     char a[STRSIZE];
-                                                    Write("  iload_"); Write(itos(t->counter, a)); Write("\n");
+                                                    Write("  iload "); Write(itos(t->counter, a)); Write("\n");
                                                 }
                                                 else
                                                 {
@@ -637,7 +631,7 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                 else if (t != NULL && t->glob_flag == 0)
                                                 {
                                                     char a[STRSIZE];
-                                                    Write("  iload_"); Write(itos(t->counter, a)); Write("\n");
+                                                    Write("  iload "); Write(itos(t->counter, a)); Write("\n");
                                                 }
                                                 else 
                                                 {
@@ -692,21 +686,32 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE block    {
                                                                 char l[STRSIZE];
                                                                 str[0] = '\0';
 
-                                                                strcat(str, buffer[bufIndex - 3]);
-                                                                strcat(str, "  goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
-                                                                strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
-                                                                strcat(str, "  iconst_1\n");
-                                                                strcat(str, "L"); strcat(str, itos(L, l)); strcat(str, ":\n");
-                                                                strcat(str, "  ifeq L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
-                                                                L++;
+                                                                if (strcmp($3, "true") == 0 || strcmp($3, "false") == 0)
+                                                                {
+                                                                    strcat(str, buffer[bufIndex - 3]);
+                                                                    strcat(str, buffer[bufIndex - 2]);
+                                                                    strcat(str, "  goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
+                                                                    strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                    strcat(str, buffer[bufIndex - 1]);
+                                                                    strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                }
+                                                                else {
+                                                                    strcat(str, buffer[bufIndex - 3]);
+                                                                    strcat(str, "  goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
+                                                                    strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                    strcat(str, "  iconst_1\n");
+                                                                    strcat(str, "L"); strcat(str, itos(L, l)); strcat(str, ":\n");
+                                                                    strcat(str, "  ifeq L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
+                                                                    L++;
 
-                                                                strcat(str, buffer[bufIndex - 2]);
-                                                                strcat(str, "  goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
+                                                                    strcat(str, buffer[bufIndex - 2]);
+                                                                    strcat(str, "  goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
 
-                                                                strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                    strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
 
-                                                                strcat(str, buffer[bufIndex - 1]);
-                                                                strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                    strcat(str, buffer[bufIndex - 1]);
+                                                                    strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                }
 
                                                                 buffer[bufIndex - 3][0] = '\0';
                                                                 buffer[bufIndex - 2][0] = '\0';
@@ -715,7 +720,30 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE block    {
                                                                 Write(str);
                                                                 }
                 | IF L_BRACE bool_exp R_BRACE block             {
+                                                                char str[MAX_LINE_SIZE];
+                                                                char l[STRSIZE];
+                                                                str[0] = '\0';
                                                                 
+                                                                if (strcmp($3, "true") == 0 || strcmp($3, "false") == 0)
+                                                                {
+                                                                    strcat(str, buffer[bufIndex - 2]);
+                                                                    strcat(str, buffer[bufIndex - 1]);             
+                                                                    strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                }
+                                                                else
+                                                                {
+                                                                    strcat(str, buffer[bufIndex - 2]);
+                                                                    strcat(str, "  goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
+                                                                    strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                    strcat(str, "  iconst_1\n");
+                                                                    strcat(str, buffer[bufIndex - 1]);
+                                                                    strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                }
+
+                                                                buffer[bufIndex - 2][0] = '\0';
+                                                                buffer[bufIndex - 1][0] = '\0';
+                                                                bufIndex -= 2;
+                                                                Write(str);
                                                                 }
                 ;
 
@@ -744,21 +772,23 @@ loop:           WHILE L_BRACE bool_exp R_BRACE while_block  {
                 ;
 
 bool_exp:       integer_exp                             {
-                                                        int i = stoi($1);
-                                                        if (i)
-                                                        {
-                                                            $$ = 1;
-                                                        }
-                                                        else
-                                                        {
-                                                            $$ = 0;
-                                                        }
+                                                            $$ = strdup($1);
                                                         }
                 | TRUE                                  {
-                                                            $$ = $1;
+                                                            char l[STRSIZE];
+                                                            Write("  iconst_1\n");
+                                                            Write("  ifeq L"); Write(itos(L, l)); Write("\n");
+                                                            $$ = strdup($1);
+
+                                                            bufIndex++;
                                                         }
                 | FALSE                                 {
-                                                            $$ = $1;
+                                                            char l[STRSIZE];
+                                                            Write("  iconst_0\n");
+                                                            Write("  ifeq L"); Write(itos(L, l)); Write("\n");
+                                                            $$ = strdup($1);
+
+                                                            bufIndex++;
                                                         }
                 ;
 
@@ -1224,7 +1254,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 else if (t != NULL)
                                                 {
                                                     char a[STRSIZE];
-                                                    Write("  iload_"); Write(itos(t->counter, a)); Write("\n");
+                                                    Write("  iload "); Write(itos(t->counter, a)); Write("\n");
                                                 }
                                                 else
                                                 {
@@ -1405,11 +1435,11 @@ void judge(list_t* t1, list_t* t2, char* file, char arg[STRSIZE][STRSIZE], char*
 	else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && t1->scope == 0 && arg[t1->counter] == NULL)
 	{
 		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t1->st_name); strcat(cat, "\n");
-		strcat(cat, "  iload_"); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
+		strcat(cat, "  iload "); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
 	}
 	else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && t2->scope == 0 && arg[t2->counter] == NULL)
 	{
-		strcat(cat, "  iload_"); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
+		strcat(cat, "  iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
 		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t2->st_name); strcat(cat, "\n");
 	}
 	else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && t1->scope == 0)
@@ -1424,18 +1454,18 @@ void judge(list_t* t1, list_t* t2, char* file, char arg[STRSIZE][STRSIZE], char*
 	}
 	else if (t1 != NULL && t2 != NULL)
 	{
-		strcat(cat, "  iload_"); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
-		strcat(cat, "  iload_"); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
+		strcat(cat, "  iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
+		strcat(cat, "  iload "); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
 	}
 	else if (t1 != NULL && t2 == NULL)
 	{
-		strcat(cat, "  iload_"); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
+		strcat(cat, "  iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
 		strcat(cat, "  sipush "); strcat(cat, $3); strcat(cat, "\n");
 	}
 	else if (t1 == NULL && t2 != NULL)
 	{
 		strcat(cat, "  sipush "); strcat(cat, $1); strcat(cat, "\n");
-		strcat(cat, "  iload_"); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
+		strcat(cat, "  iload "); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
 	}
 	else
 	{
