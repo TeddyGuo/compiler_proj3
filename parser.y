@@ -45,7 +45,8 @@ try to deal with loop and local variable problem cause now every variable is glo
 Now, try to solve loop and UMINUS problem
 
 May 24, 2018
-
+Today, I add more blocks for judge whether it is a while_loop or if_els_stmt after some blocks or not.
+Finally, I got a good way to produce java bytecode after I know the principle of bison since it is bottom-up parsing.
 */
 %{
 #include "symbols.c"
@@ -687,7 +688,31 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                 ;
 
 conditional:    IF L_BRACE bool_exp R_BRACE block ELSE block    {
+                                                                char str[MAX_LINE_SIZE];
+                                                                char l[STRSIZE];
+                                                                str[0] = '\0';
 
+                                                                strcat(str, buffer[bufIndex - 3]);
+                                                                strcat(str, "  goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
+                                                                strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                strcat(str, "  iconst_1\n");
+                                                                strcat(str, "L"); strcat(str, itos(L, l)); strcat(str, ":\n");
+                                                                strcat(str, "  ifeq L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
+                                                                L++;
+
+                                                                strcat(str, buffer[bufIndex - 2]);
+                                                                strcat(str, "  goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
+
+                                                                strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+
+                                                                strcat(str, buffer[bufIndex - 1]);
+                                                                strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+
+                                                                buffer[bufIndex - 3][0] = '\0';
+                                                                buffer[bufIndex - 2][0] = '\0';
+                                                                buffer[bufIndex - 1][0] = '\0';
+                                                                bufIndex -= 3;
+                                                                Write(str);
                                                                 }
                 | IF L_BRACE bool_exp R_BRACE block             {
                                                                 
@@ -1026,9 +1051,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         char l[STRSIZE];
                                                         Write("  iflt L"); Write(itos(L, l)); Write("\n");
                                                         Write("  iconst_0\n");
-                                                        Write("  goto L"); Write(itos(L+1, l)); Write("\n");
-                                                        Write("L"); Write(itos(L, l)); Write(":\n"); Write("  iconst_1\n");
-                                                        L++;
+                                                        
                                                                                        
                                                         // return part
                                                         int i, j;
@@ -1057,9 +1080,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 char l[STRSIZE];
                                                 Write("  ifle L"); Write(itos(L, l)); Write("\n");
                                                 Write("  iconst_0\n");
-                                                Write("  goto L"); Write(itos(L+1, l)); Write("\n");
-                                                Write("L"); Write(itos(L, l)); Write(":\n"); Write("  iconst_1\n");
-                                                L++;
+
 
                                                 // return part
                                                 int i, j;
@@ -1088,9 +1109,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 char l[STRSIZE];
                                                 Write("  ifeq L"); Write(itos(L, l)); Write("\n");
                                                 Write("  iconst_0\n");
-                                                Write("  goto L"); Write(itos(L+1, l)); Write("\n");
-                                                Write("L"); Write(itos(L, l)); Write(":\n"); Write("  iconst_1\n");
-                                                L++;
+                                                
 
                                                 // return part
                                                 int i, j;
@@ -1119,9 +1138,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 char l[STRSIZE];
                                                 Write("  ifge L"); Write(itos(L, l)); Write("\n");
                                                 Write("  iconst_0\n");
-                                                Write("  goto L"); Write(itos(L+1, l)); Write("\n");
-                                                Write("L"); Write(itos(L, l)); Write(":\n"); Write("  iconst_1\n");
-                                                L++;
+                                                
 
                                                 // return part
                                                 int i, j;
@@ -1150,9 +1167,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                     char l[STRSIZE];
                                                     Write("  ifgt L"); Write(itos(L, l)); Write("\n");
                                                     Write("  iconst_0\n");
-                                                    Write("  goto L"); Write(itos(L+1, l)); Write("\n");
-                                                    Write("L"); Write(itos(L, l)); Write(":\n"); Write("  iconst_1\n");
-                                                    L++;
+                                                    
 
                                                     // return part
                                                     int i, j;
@@ -1181,9 +1196,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 char l[STRSIZE];
                                                 Write("  ifne L"); Write(itos(L, l)); Write("\n");
                                                 Write("  iconst_0\n");
-                                                Write("  goto L"); Write(itos(L+1, l)); Write("\n");
-                                                Write("L"); Write(itos(L, l)); Write(":\n"); Write("  iconst_1\n");
-                                                L++;
+                                                
 
                                                 // return part
                                                 int i, j;
@@ -1378,6 +1391,7 @@ int main(int argc, char** argv)
     return 0;
 }
 
+// judge that I should take a global variable or a local variable
 void judge(list_t* t1, list_t* t2, char* file, char arg[STRSIZE][STRSIZE], char* $1, char* $3)
 {
 	char cat[MAX_LINE_SIZE];
