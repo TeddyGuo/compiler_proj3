@@ -8,6 +8,9 @@ For example, constant_int, constant_real, and so on.
 
 May 1, 2018
 Change the format when write info into dump.out line 134-140
+
+May 24, 2018
+I found func variable in proj3 is trash since it is very useless.
 */
 #include "symbols.h"
 #include <stdio.h>
@@ -16,8 +19,6 @@ Change the format when write info into dump.out line 134-140
 
 /* current scope */
 int cur_scope = 0;
-/* current func */
-char *func = "";
 
 void create()
 {
@@ -34,7 +35,7 @@ unsigned int hash(char *key)
 	return hashval % SIZE;
 }
 
-void insert(char *name, int len, int type, int lineno, char* func)
+void insert(char *name, int len, int type, int lineno)
 {
 	unsigned int hashval = hash(name); // hash function used
 	list_t *l = hash_table[hashval];
@@ -48,7 +49,6 @@ void insert(char *name, int len, int type, int lineno, char* func)
 		/* add to hashtable */
 		l->st_type = type;
 		l->scope = cur_scope;
-		l->func = strdup(func);
 		l->lines = (RefList*) malloc(sizeof(RefList));
 		l->lines->lineno = lineno;
 		l->lines->next = NULL;
@@ -59,7 +59,6 @@ void insert(char *name, int len, int type, int lineno, char* func)
 	/* found in table, so just add line number */
 	else{
 		l->scope = cur_scope;
-		l->func = strdup(func);
 		RefList *t = l->lines;
 		while (t->next != NULL) t = t->next;
 		/* add linenumber to reference list */
@@ -163,4 +162,45 @@ void dump(FILE * of)
 		}
     }
   }
+}
+
+int stoi(char *str)
+{
+  int result;
+  int puiss;
+
+  result = 0;
+  puiss = 1;
+  while (('-' == (*str)) || ((*str) == '+'))
+    {
+      if (*str == '-')
+        puiss = puiss * -1;
+      str++;
+    }
+  while ((*str >= '0') && (*str <= '9'))
+    {
+      result = (result * 10) + ((*str) - '0');
+      str++;
+    }
+  return (result * puiss);
+}
+
+char* itos(int i, char b[]){
+    char const digit[] = "0123456789";
+    char* p = b;
+    if(i<0){
+        *p++ = '-';
+        i *= -1;
+    }
+    int shifter = i;
+    do{ //Move to where representation ends
+        ++p;
+        shifter = shifter/10;
+    }while(shifter);
+    *p = '\0';
+    do{ //Move back, inserting digits as u go
+        *--p = digit[i%10];
+        i = i/10;
+    }while(i);
+    return b;
 }

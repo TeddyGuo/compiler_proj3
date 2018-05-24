@@ -57,8 +57,9 @@ May 24, 2018
 #include <math.h>
 
 #define Trace(t, line)        printf(t, line) // Trace where the error occurs and print the line number
-#define List(str)             strcat(buffer, str);
-#define Write(str)            fprintf(javaa, str);
+#define List(str);            fprintf(javaa, "%s", str)
+#define Write(str)            strcat(buffer[bufIndex], str)
+#define Num(number);          bufferMark[bufIndex] = number
 
 /* standard size for string type in rust- programming language */
 #ifndef STRSIZE
@@ -82,6 +83,9 @@ May 24, 2018
 #define true 1
 #define false 0
 
+#define NORMAL 0
+#define BOOLEXP 1
+
 extern FILE* yyin;
 extern FILE* yyout;
 extern int linenum;
@@ -91,20 +95,9 @@ char* file;         // filename without extension
 
 char arg[STRSIZE][STRSIZE]; // record the names of arguments in the current function
 
-char ifstmt[MAX_LINE_SIZE]; // if statement buffer
-short ifFlag = 0;           // 1 means if only, 2 means if plus else
-
-char loopstmt[MAX_LINE_SIZE]; // while statement buffer
-short loopFlag = 0; // -1 means while statement exist now
-
-char out[4][MAX_LINE_SIZE]; // print buffer
-
-char opbuf[4][MAX_LINE_SIZE];  // operator buffer
-short opcount = 0;
-
-short cur_block = 0; // for ifstmt and loopstmt
-
-char buffer[MAX_LINE_SIZE]; // reserve the code generation in the func
+char buffer[STRSIZE][MAX_LINE_SIZE]; // reserve the code generation in the func cause it is fucking reversed.
+int bufIndex = 0;
+int bufferMark[STRSIZE]; // remark what kind of handle about the match buffer blocks.
 
 int counter = 0; // cause we have some local variables, I use this counter to record the number of next one.
 char constant[STRSIZE][STRSIZE]; // record constant for generation
@@ -112,8 +105,7 @@ char constant[STRSIZE][STRSIZE]; // record constant for generation
 int L = 0; // stage counter
 
 void yyerror(char* msg);
-int             stoi(char *str);
-char*           itos(int i, char b[]);
+void judge(list_t*, list_t*, char*, char arg[STRSIZE][STRSIZE], char*, char*); // judge should Write what king of sentences into file
 %}
 
 %union{
@@ -197,13 +189,12 @@ start:          L_B                                                 {
                 ;
 
 constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
-                                                                    list_t* t_glob = lookup_scope($2, 0);
-                                                                    list_t* t_cur = lookup($2);
+                                                                    list_t* t = lookup($2);
 
-                                                                    if (t_glob == NULL && t_cur == NULL)
+                                                                    if (t == NULL)
                                                                     {
-                                                                        insert($2, strlen($2), CONST_INT_TYPE, linenum, func);
-                                                                        list_t* t = lookup($2);
+                                                                        insert($2, strlen($2), CONST_INT_TYPE, linenum);
+                                                                        t = lookup($2);
                                                                         t->st_ival = stoi($4);
                                                                         t->st_sval = strdup($4);
                                                                         for (int i = 0; i < STRSIZE; i++)
@@ -219,13 +210,12 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                     }        
                         | LET ID COLON INT ASSIGN integer_exp SEMICOLON     {
-                                                                            list_t* t_glob = lookup_scope($2, 0);
-                                                                            list_t* t_cur = lookup($2);
+                                                                            list_t* t = lookup($2);
 
-                                                                            if (t_glob == NULL && t_cur == NULL)
+                                                                            if (t == NULL)
                                                                             {
-                                                                                insert($2, strlen($2), CONST_INT_TYPE, linenum, func);
-                                                                                list_t* t = lookup($2);
+                                                                                insert($2, strlen($2), CONST_INT_TYPE, linenum);
+                                                                                t = lookup($2);
                                                                                 t->st_ival = stoi($6);
                                                                                 t->st_sval = strdup($6);
                                                                                 for (int i = 0; i < STRSIZE; i++)
@@ -243,123 +233,119 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                         ;
 
 variable_declaration:   LET MUT ID SEMICOLON                            {
-                                                                        list_t* t_glob = lookup_scope($3, 0);
-                                                                        list_t* t_cur = lookup($3);
+                                                                        list_t* t = lookup($3);
 
-                                                                        if (t_cur == NULL && cur_scope == 1)
+                                                                        if (t == NULL && cur_scope == 1)
                                                                         {
-                                                                            insert($3, strlen($3), UNDEF, linenum, func);
-                                                                            list_t* t = lookup($3);
+                                                                            insert($3, strlen($3), UNDEF, linenum);
+                                                                            t = lookup($3);
                                                                             t->glob_flag = 0;
                                                                             t->counter = counter;
                                                                             counter++;
                                                                         }
-                                                                        if (t_glob == NULL && cur_scope == 0)
+                                                                        else if (t == NULL && cur_scope == 0)
                                                                         {
-                                                                            insert($3, strlen($3), UNDEF, linenum, func);
-                                                                            t_glob = lookup($3);
-                                                                            t_glob->glob_flag = 1;
-                                                                            fprintf(javaa, "field static int %s\n", $3);
+                                                                            insert($3, strlen($3), UNDEF, linenum);
+                                                                            t = lookup($3);
+                                                                            t->glob_flag = 1;
+                                                                            List("field static int "); List($3); List("\n");
                                                                         }
                                                                         else Trace("line %d: Redeclaration of identifier.\n", linenum);
+
+                                                                        
                                                                         }
                         | LET MUT ID COLON INT SEMICOLON                {
-                                                                        list_t* t_glob = lookup_scope($3, 0);
-                                                                        list_t* t_cur = lookup($3);
+                                                                        list_t* t = lookup($3);
 
-                                                                        if (t_cur == NULL && cur_scope == 1)
+                                                                        if (t == NULL && cur_scope == 1)
                                                                         {
-                                                                            insert($3, strlen($3), INT_TYPE, linenum, func);
-                                                                            list_t* t = lookup($3);
+                                                                            insert($3, strlen($3), INT_TYPE, linenum);
+                                                                            t = lookup($3);
                                                                             t->glob_flag = 0;
                                                                             t->counter = counter;
                                                                             counter++;
                                                                         }
-                                                                        else if (t_glob == NULL && cur_scope == 0)
+                                                                        else if (t == NULL && cur_scope == 0)
                                                                         {
-                                                                            insert($3, strlen($3), INT_TYPE, linenum, func);
-                                                                            t_glob = lookup($3);
-                                                                            t_glob->glob_flag = 1;
-                                                                            fprintf(javaa, "field static int %s\n", $3);
+                                                                            insert($3, strlen($3), INT_TYPE, linenum);
+                                                                            t = lookup($3);
+                                                                            t->glob_flag = 1;
+                                                                            List("field static int "); List($3); List("\n");
                                                                         }
                                                                         else Trace("line %d: Redeclaration of identifier.\n", linenum);
+
+                                                                        
                                                                         }
                         | LET MUT ID ASSIGN integer_exp SEMICOLON       {
-                                                                        list_t* t_glob = lookup_scope($3, 0);
-                                                                        list_t* t_cur = lookup($3);
+                                                                        list_t* t = lookup($3);
 
-                                                                        if (t_cur == NULL && cur_scope == 1)
+                                                                        if (t == NULL && cur_scope == 1)
                                                                         {
-                                                                            insert($3, strlen($3), INT_TYPE, linenum, func);
-                                                                            list_t* t = lookup($3);
+                                                                            insert($3, strlen($3), INT_TYPE, linenum);
+                                                                            t = lookup($3);
                                                                             t->glob_flag = 0;
                                                                             t->counter = counter;
                                                                             t->st_ival = stoi($5);
                                                                             t->st_sval = strdup($5);
                                                                             counter++;
-                                                                            List("  sipush ");
-                                                                            
-                                                                            List($5);
-                                                                            
-                                                                            List("\n");
-                                                                            List("  istore_");
+                                                                            Write("  sipush "); Write($5); Write("\n");
                                                                             
                                                                             char n[STRSIZE];
                                                                             sprintf(n, "%d", t->counter);
-                                                                            List(n);
-                                                                            
-                                                                            List("\n\n");
+                                                                            Write("  istore_"); Write(n); Write("\n\n");
+
+                                                                            // put mark for buffer
+                                                                            Num(NORMAL);
+
+                                                                            bufIndex++;
                                                                         }
-                                                                        else if (t_glob == NULL && cur_scope == 0)
+                                                                        else if (t == NULL && cur_scope == 0)
                                                                         {
-                                                                            insert($3, strlen($3), INT_TYPE, linenum, func);
-                                                                            list_t* t = lookup($3);
+                                                                            insert($3, strlen($3), INT_TYPE, linenum);
+                                                                            t = lookup($3);
                                                                             t->glob_flag = 1;
                                                                             t->st_ival = stoi($5);
                                                                             t->st_sval = strdup($5);
-                                                                            fprintf(javaa, "field static int %s = %s\n", $3, $5);
+                                                                            List("field static int "); List($3); List(" = "); List($5); List("\n");
                                                                         }
                                                                         else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                         }        
                         | LET MUT ID COLON INT ASSIGN integer_exp SEMICOLON     {
-                                                                                list_t* t_glob = lookup_scope($3, 0);
-                                                                                list_t* t_cur = lookup($3);
+                                                                                list_t* t = lookup($3);
 
-                                                                                if (t_cur == NULL && cur_scope == 1)
+                                                                                if (t == NULL && cur_scope == 1)
                                                                                 {
-                                                                                    insert($3, strlen($3), INT_TYPE, linenum, func);
-                                                                                    list_t* t = lookup($3);
+                                                                                    insert($3, strlen($3), INT_TYPE, linenum);
+                                                                                    t = lookup($3);
                                                                                     t->glob_flag = 0;
                                                                                     t->counter = counter;
                                                                                     t->st_ival = stoi($7);
                                                                                     t->st_sval = strdup($7);
                                                                                     counter++;
-                                                                                    List("  sipush ");
-                                                                                    
-                                                                                    List($7);
-                                                                                    
-                                                                                    List("\n");
-                                                                                    List("  istore_");
+                                                                                    Write("  sipush "); Write($7); Write("\n");
 
                                                                                     char n[STRSIZE];
                                                                                     sprintf(n, "%d", t->counter);
-                                                                                    List(n);
+                                                                                    Write("  istore_"); Write(n); Write("\n\n");
 
-                                                                                    List("\n\n");
+                                                                                    // put mark for buffer
+                                                                                    Num(NORMAL);
+
+                                                                                    bufIndex++;
                                                                                 }
-                                                                                else if (t_glob == NULL && cur_scope == 0)
+                                                                                else if (t == NULL && cur_scope == 0)
                                                                                 {
-                                                                                    insert($3, strlen($3), INT_TYPE, linenum, func);
-                                                                                    t_glob = lookup($3);
-                                                                                    t_glob->glob_flag = 1;
-                                                                                    fprintf(javaa, "field static int %s = %s\n", $3, $7);
+                                                                                    insert($3, strlen($3), INT_TYPE, linenum);
+                                                                                    t = lookup($3);
+                                                                                    t->glob_flag = 1;
+                                                                                    List("field static int "); List($3); List(" = "); List("\n");
                                                                                 }
                                                                                 else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                                 }
                         ;
 
 fn_start:       L_BRACE                 {
-                                        incr_scope();
+                                        hide_scope();
                                         }
                 ;
 
@@ -374,81 +360,45 @@ functions:      functions functions
                 ;
 
 function:       FN ID fn_start R_BRACE fn_block                     {
-                                                                    func = strdup($2);
-                                                                    list_t* t_glob = lookup_scope($2, 0);
+                                                                    list_t* t = lookup($2);
 
-                                                                    if (t_glob == NULL)
+                                                                    if (t == NULL)
                                                                     {
-                                                                        insert($2, strlen($2), FUNCTION_TYPE, linenum, func);
-                                                                        list_t* t = lookup($2);
+                                                                        insert($2, strlen($2), FUNCTION_TYPE, linenum);
+                                                                        t = lookup($2);
                                                                         t->inf_type = UNDEF;
                                                                         t->parameters = NULL;
                                                                         t->num_of_pars = 0;
 
                                                                         if (strcmp($2, "main") == 0)
-                                                                            fprintf(javaa, "\nmethod public static void main(java.lang.String[])\n");
-                                                                        else
-                                                                            fprintf(javaa, "\nmethod public static void %s()\n", $2);
-                                                                        
-                                                                        fprintf(javaa, "max_stack 15\n");
-                                                                        fprintf(javaa, "max_locals 15\n");
-                                                                        fprintf(javaa, "{\n\n");
-                                                                        fprintf(javaa, "%s", buffer);
-                                                                        if (ifFlag != 0)
                                                                         {
-                                                                            fprintf(javaa, "%s", ifstmt);
-                                                                            ifstmt[0] = '\0';
+                                                                            List("\nmethod public static void main(java.lang.String[])\n");
                                                                         }
-                                                                        if (strcmp(loopstmt, "") != 0)
-                                                                        {   
-                                                                            fprintf(javaa, "%s", loopstmt);
-                                                                            loopstmt[0] = '\0';
+                                                                        else
+                                                                        {
+                                                                            List("\nmethod public static void "); List($2); List("()\n");
+                                                                        }
+                                                                        
+                                                                        List("max_stack 15\nmax_locals 15\n{\n");
+                                                                        
+                                                                        for (int i = 0; i < bufIndex; i++)
+                                                                        {
+                                                                            List(buffer[i]);
+                                                                            buffer[i][0] = '\0';
                                                                         }
 
-                                                                        if (ifFlag == 2)
-                                                                        {
-                                                                            fprintf(javaa, "%s", out[1]);
-                                                                            out[1][0] = '\0';
-                                                                            fprintf(javaa, "%s", out[2]);
-                                                                            out[2][0] = '\0';
-                                                                            fprintf(javaa, "%s", out[0]);
-                                                                            out[0][0] = '\0';
-                                                                            if (out[3] != NULL)
-                                                                            {
-                                                                                fprintf(javaa, "%s", out[3]);
-                                                                                out[3][0] = '\0';
-                                                                            }
-                                                                            ifFlag = 0;
-                                                                        }
-                                                                        else
-                                                                        {
-                                                                            for (int i = 0; i < 4; i++)
-                                                                            {
-                                                                                if (out[i] != NULL)
-                                                                                {
-                                                                                    fprintf(javaa, "%s", out[i]);
-                                                                                    out[i][0] = '\0';
-                                                                                }
-                                                                                else
-                                                                                {
-                                                                                    break;
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                        buffer[0] = '\0';
-                                                                        fprintf(javaa, "  return\n");
-                                                                        fprintf(javaa, "}\n");
+                                                                        List("  return\n");
+                                                                        List("}\n");
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                     }
                 | FN ID fn_start formal_arguments R_BRACE fn_block  {
-                                                                    func = strdup($2);
-                                                                    list_t* t_glob = lookup_scope($2, 0);
+                                                                    list_t* t = lookup($2);
 
-                                                                    if (t_glob == NULL)
+                                                                    if (t == NULL)
                                                                     {
-                                                                        insert($2, strlen($2), FUNCTION_TYPE, linenum, func);
-                                                                        list_t* t = lookup($2);
+                                                                        insert($2, strlen($2), FUNCTION_TYPE, linenum);
+                                                                        t = lookup($2);
                                                                         t->inf_type = UNDEF;
                                                                         t->parameters = $4;
                                                                         t->num_of_pars = 0;
@@ -461,43 +411,22 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                         }
                                                                         printf("Num of pars is %d\n", t->num_of_pars);
 
-                                                                        fprintf(javaa, "\nmethod public static void %s(", $2);
+                                                                        List("\nmethod public static void "); List($2); List("(");
                                                                         for (int i = 0; i < t->num_of_pars - 1; i++)
                                                                         {
-                                                                            fprintf(javaa, "int, ");
+                                                                            List("int, ");
                                                                         }
-                                                                        fprintf(javaa, "int)\n");
-                                                                        fprintf(javaa, "max_stack 15\n");
-                                                                        fprintf(javaa, "max_locals 15\n");
-                                                                        fprintf(javaa, "{\n\n");
-                                                                        fprintf(javaa, "%s", buffer);
-                                                                        if (ifFlag != 0)
+                                                                        List("int)\n");
+                                                                        List("max_stack 15\nmax_locals 15\n{\n");
+                                                                       
+                                                                        for (int i = 0; i < bufIndex; i++)
                                                                         {
-                                                                            fprintf(javaa, "%s", ifstmt);
-                                                                            ifstmt[0] = '\0';
-                                                                            ifFlag = 0;
+                                                                            List(buffer[i]);
+                                                                            buffer[i][0] = '\0';
                                                                         }
-                                                                        if (strcmp(loopstmt, "") != 0)
-                                                                        {   
-                                                                            fprintf(javaa, "%s", loopstmt);
-                                                                            loopstmt[0] = '\0';
-                                                                        }
-                                                                        
-                                                                        for (int i = 2; i >= 0; i--)
-                                                                        {   
-                                                                            if (out[i] != NULL)
-                                                                            {
-                                                                                fprintf(javaa, "%s", out[i]);
-                                                                                out[i][0] = '\0';
-                                                                            }
-                                                                            else
-                                                                            {
-                                                                                break;
-                                                                            }
-                                                                        }
-                                                                        buffer[0] = '\0';
-                                                                        fprintf(javaa, "  return\n");
-                                                                        fprintf(javaa, "}\n");
+
+                                                                        List("  return\n");
+                                                                        List("}\n");
 
                                                                         //clear argument table after exit current func
                                                                         for(int i = 0; i < STRSIZE; i++) arg[i][0] = '\0';
@@ -505,59 +434,38 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                     }
                 | FN ID fn_start R_BRACE ARROW INT fn_block         {
-                                                                    func = strdup($2);
-                                                                    list_t* t_glob = lookup_scope($2, 0);
+                                                                    list_t* t = lookup($2);
 
-                                                                    if (t_glob == NULL)
+                                                                    if (t == NULL)
                                                                     {
-                                                                        insert($2, strlen($2), FUNCTION_TYPE, linenum, func);
-                                                                        list_t* t = lookup($2);
+                                                                        insert($2, strlen($2), FUNCTION_TYPE, linenum);
+                                                                        t = lookup($2);
                                                                         t->inf_type = INT_TYPE;
                                                                         t->parameters = NULL;
                                                                         t->num_of_pars = 0;
 
-                                                                        fprintf(javaa, "\nmethod public static int %s()\n", $2);
-                                                                        fprintf(javaa, "max_stack 15\n");
-                                                                        fprintf(javaa, "max_locals 15\n");
-                                                                        fprintf(javaa, "{\n\n");
-                                                                        fprintf(javaa, "%s", buffer);
-                                                                        if (ifFlag != 0)
-                                                                        {
-                                                                            fprintf(javaa, "%s", ifstmt);
-                                                                            ifstmt[0] = '\0';
-                                                                            ifFlag = 0;
-                                                                        }
-                                                                        if (strcmp(loopstmt, "") != 0)
-                                                                        {   
-                                                                            fprintf(javaa, "%s", loopstmt);
-                                                                            loopstmt[0] = '\0';
-                                                                        }
+                                                                        List("\nmethod public static int "); List($2); List("()\n");
+                                                                        List("max_stack 15\n");
+                                                                        List("max_locals 15\n");
+                                                                        List("{\n\n");
 
-                                                                        for (int i = 2; i >= 0; i--)
-                                                                        {   
-                                                                            if (out[i] != NULL)
-                                                                            {
-                                                                                fprintf(javaa, "%s", out[i]);
-                                                                                out[i][0] = '\0';
-                                                                            }
-                                                                            else
-                                                                            {
-                                                                                break;
-                                                                            }
+                                                                        for (int i = 0; i < bufIndex; i++)
+                                                                        {
+                                                                            List(buffer[i]);
+                                                                            buffer[i][0] = '\0';
                                                                         }
-                                                                        buffer[0] = '\0';
-                                                                        fprintf(javaa, "}\n");
+                                                                        
+                                                                        List("}\n");
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                     }
                 | FN ID fn_start formal_arguments R_BRACE ARROW INT fn_block{
-                                                                            func = strdup($2);
-                                                                            list_t* t_glob = lookup_scope($2, 0);
+                                                                            list_t* t = lookup($2);
 
-                                                                            if (t_glob == NULL)
+                                                                            if (t == NULL)
                                                                             {
-                                                                                insert($2, strlen($2), FUNCTION_TYPE, linenum, func);
-                                                                                list_t* t = lookup($2);
+                                                                                insert($2, strlen($2), FUNCTION_TYPE, linenum);
+                                                                                t = lookup($2);
                                                                                 t->inf_type = INT_TYPE;
                                                                                 t->parameters = $4;
                                                                                 t->num_of_pars = 0;
@@ -570,42 +478,23 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                                 }
                                                                                 printf("Num of pars is %d\n", t->num_of_pars);
 
-                                                                                fprintf(javaa, "\nmethod public static int %s(", $2);
+                                                                                List("\nmethod public static int "); List($2); List("(");
                                                                                 for(int i = 0; i < t->num_of_pars - 1; i++)
                                                                                 {
-                                                                                    fprintf(javaa, "int, ");
+                                                                                    List("int, ");
                                                                                 }
-                                                                                fprintf(javaa, "int)\n");
-                                                                                fprintf(javaa, "max_stack 15\n");
-                                                                                fprintf(javaa, "max_locals 15\n");
-                                                                                fprintf(javaa, "{\n\n");
-                                                                                fprintf(javaa, "%s", buffer);
-                                                                                if (ifFlag != 0)
-                                                                                {
-                                                                                    fprintf(javaa, "%s", ifstmt);
-                                                                                    ifstmt[0] = '\0';
-                                                                                    ifFlag = 0;
-                                                                                }
-                                                                                if (strcmp(loopstmt, "") != 0)
-                                                                                {   
-                                                                                    fprintf(javaa, "%s", loopstmt);
-                                                                                    loopstmt[0] = '\0';
-                                                                                }
+                                                                                List("int)\n");
+                                                                                List("max_stack 15\n");
+                                                                                List("max_locals 15\n");
+                                                                                List("{\n");
                                                                                 
-                                                                                for (int i = 2; i >= 0; i--)
-                                                                                {   
-                                                                                    if (out[i] != NULL)
-                                                                                    {
-                                                                                        fprintf(javaa, "%s", out[i]);
-                                                                                        out[i][0] = '\0';
-                                                                                    }
-                                                                                    else
-                                                                                    {
-                                                                                        break;
-                                                                                    }
+                                                                                for (int i = 0; i < bufIndex; i++)
+                                                                                {
+                                                                                    List(buffer[i]);
+                                                                                    buffer[i][0] = '\0';
                                                                                 }
-                                                                                buffer[0] = '\0';
-                                                                                fprintf(javaa, "}\n");
+
+                                                                                List("}\n");
 
                                                                                 //clear argument table after exit current func
                                                                                 for(int i = 0; i < STRSIZE; i++) arg[i][0] = '\0';
@@ -630,7 +519,7 @@ formal_argument:        ID COLON INT                                    {
                                                          
                                                                         if (t == NULL)
                                                                         {
-                                                                            insert($1, strlen($1), INT_TYPE, linenum, func);
+                                                                            insert($1, strlen($1), INT_TYPE, linenum);
                                                                             t = lookup($1);
                                                                             p->par_type = INT_TYPE;
                                                                             p->param_name = strdup($1);
@@ -644,7 +533,7 @@ formal_argument:        ID COLON INT                                    {
                                                                             counter += 1;
                                                                             $$ = p;
                                                                         }
-                                                                        else if (t != NULL && strcmp(t->func, PROGRAM) == 0)
+                                                                        else if (t != NULL && t->scope == 0)
                                                                         {
                                                                             p->par_type = INT_TYPE;
                                                                             p->param_name = strdup($1);
@@ -667,149 +556,150 @@ statements:     statements statement
                 ;
 
 statement:      ID ASSIGN integer_exp SEMICOLON                     {
-                                                                    list_t* t_cur = lookup($1);
-                                                                    if (t_cur != NULL && (t_cur->st_type == INT_TYPE || t_cur->st_type == UNDEF))
+                                                                    list_t* t = lookup($1);
+                                                                    if (t != NULL && (t->st_type == INT_TYPE || t->st_type == UNDEF))
                                                                     {
-                                                                        t_cur->st_type = INT_TYPE;
-                                                                        t_cur->st_ival = stoi($3);
-                                                                        t_cur->st_sval = strdup($3);
+                                                                        t->st_type = INT_TYPE;
+                                                                        t->st_ival = stoi($3);
+                                                                        t->st_sval = strdup($3);
 
-                                                                        if (t_cur->glob_flag == 1)
+                                                                        if (t->glob_flag == 1)
                                                                         {
-                                                                            List("  putstatic int "); List(file); List("."); List(t_cur->st_name); List("\n\n");
+                                                                            Write("  putstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n\n");
                                                                         }
                                                                         else
                                                                         {
-                                                                            List("  sipush "); List($3); List("\n");
+                                                                            Write("  sipush "); Write($3); Write("\n");
                                                                             char a[STRSIZE];
-                                                                            List("  istore_"); List(itos(t_cur->counter, a)); List("\n\n");
+                                                                            Write("  istore_"); Write(itos(t->counter, a)); Write("\n\n");
                                                                         }
+
+                                                                        // put mark for buffer
+                                                                        Num(NORMAL);
+
+                                                                        bufIndex++;
                                                                     }
-                                                                    else if (t_cur != NULL && (t_cur->st_type != INT_TYPE || t_cur->st_type != UNDEF))
+                                                                    else if (t != NULL && (t->st_type != INT_TYPE || t->st_type != UNDEF))
                                                                     {
                                                                         Trace("line %d: The type does not match.\n", linenum);
                                                                     }
                                                                     else Trace("line %d: Identifier does not define.\n", linenum);
                                                                     }
                 | PRINT integer_exp SEMICOLON   {
-                                                char name[STRSIZE];
-                                                int neg = 0;
-                                                if ($2[0] == '-')
-                                                {
-                                                    neg = 1; // judge whether it is a negative number or not
-                                                    for (int i = 1; i < strlen($2); i++) name[i - 1] = $2[i];
-                                                    name[strlen($2) - 1] = '\0';
-                                                    opbuf[opcount][0] = '\0';
-                                                    opcount--;
-                                                }else for (int i = 0; i < strlen($2); i++) name[i] = $2[i];
-                                                name[strlen($2)] = '\0';
-                                                
-                                                strcat(out[cur_block], "  getstatic java.io.PrintStream java.lang.System.out\n");
+                                                Write("  getstatic java.io.PrintStream java.lang.System.out\n");
 
-                                                list_t* t = lookup(name);
-                                                if (t->glob_flag == 1)
+                                                list_t* t = lookup($2);
+                                                if (t != NULL && t->glob_flag == 1)
                                                 {
-                                                    strcat(out[cur_block], "  getstatic int "); strcat(out[cur_block], file); strcat(out[cur_block], "."); strcat(out[cur_block], t->st_name); strcat(out[cur_block], "\n");
+                                                    Write("  getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                 }
-                                                else if (t->glob_flag == 0)
+                                                else if (t != NULL && t->glob_flag == 0)
                                                 {
                                                     char a[STRSIZE];
-                                                    strcat(out[cur_block], "  iload_"); strcat(out[cur_block], itos(t->counter, a)); strcat(out[cur_block], "\n");
+                                                    Write("  iload_"); Write(itos(t->counter, a)); Write("\n");
                                                 }
                                                 else
                                                 {
-                                                    strcat(out[cur_block], "  ldc "); strcat(out[cur_block], $2); strcat(out[cur_block], "\n");
+                                                    Write("  ldc "); Write($2); Write("\n");
                                                 }
-                                                if (neg == 1) strcat(out[cur_block], "  ineg\n");
-                                                strcat(out[cur_block], "  invokevirtual void java.io.PrintStream.print(int)\n\n");
-                                                cur_block += 1;
+
+                                                if (t != NULL && t->glob_flag == 1 && t->neg == 1)
+                                                {
+                                                    t->neg = 0;
+                                                    Write("  ineg\n");
+                                                }
+                                                Write("  invokevirtual void java.io.PrintStream.print(int)\n\n");
+                                                
+                                                // put mark for buffer
+                                                Num(NORMAL);
+
+                                                bufIndex++;
                                                 }       
                 | PRINT string_exp SEMICOLON    {
-                                                strcat(out[cur_block], "  getstatic java.io.PrintStream java.lang.System.out\n");
-                                                strcat(out[cur_block], "  ldc "); strcat(out[cur_block], $2); strcat(out[cur_block], "\n");
-                                                strcat(out[cur_block], "  invokevirtual void java.io.PrintStream.print(java.lang.String)\n\n");
-                                                cur_block += 1;
+                                                Write("  getstatic java.io.PrintStream java.lang.System.out\n");
+                                                Write("  ldc "); Write($2); Write("\n");
+                                                Write("  invokevirtual void java.io.PrintStream.print(java.lang.String)\n\n");
+
+                                                // put mark for buffer
+                                                Num(NORMAL);
+                                                
+                                                bufIndex++;
                                                 }
                 | PRINTLN integer_exp SEMICOLON {
-                                                char name[STRSIZE];
-                                                int neg = 0;
-                                                if ($2[0] == '-')
-                                                {
-                                                    neg = 1; // judge whether it is a negative number or not
-                                                    for (int i = 1; i < strlen($2); i++) name[i - 1] = $2[i];
-                                                    name[strlen($2) - 1] = '\0';
-                                                }else for (int i = 0; i < strlen($2); i++) name[i] = $2[i];
-                                                name[strlen($2)] = '\0';
-                                                
-                                                strcat(out[cur_block], "  getstatic java.io.PrintStream java.lang.System.out\n");
+                                                Write("  getstatic java.io.PrintStream java.lang.System.out\n");
 
-                                                list_t* t = lookup(name);
-                                                if (t->glob_flag == 1)
+                                                list_t* t = lookup($2);
+                                                if (t != NULL && t->glob_flag == 1)
                                                 {
-                                                    strcat(out[cur_block], "  getstatic int "); strcat(out[cur_block], file); strcat(out[cur_block], "."); strcat(out[cur_block], t->st_name); strcat(out[cur_block], "\n");
+                                                    Write("  getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                 }
-                                                else if (t->glob_flag == 0)
+                                                else if (t != NULL && t->glob_flag == 0)
                                                 {
                                                     char a[STRSIZE];
-                                                    strcat(out[cur_block], "  iload_"); strcat(out[cur_block], itos(t->counter, a)); strcat(out[cur_block], "\n");
+                                                    Write("  iload_"); Write(itos(t->counter, a)); Write("\n");
                                                 }
                                                 else 
                                                 {
-                                                    strcat(out[cur_block], "  ldc "); strcat(out[cur_block], $2); strcat(out[cur_block], "\n");
+                                                    Write("  ldc "); Write($2); Write("\n");
                                                 }
-                                                if (neg == 1) strcat(out[cur_block], "  ineg\n");
-                                                strcat(out[cur_block], "  invokevirtual void java.io.PrintStream.println(int)\n\n");
-                                                cur_block += 1;
+
+                                                if (t != NULL && t->glob_flag == 1 && t->neg == 1)
+                                                {
+                                                    t->neg = 0;
+                                                    Write("  ineg\n");
+                                                }
+
+                                                Write("  invokevirtual void java.io.PrintStream.println(int)\n\n");
+
+                                                // put mark for buffer
+                                                Num(NORMAL);
+                                                
+                                                bufIndex++;
                                                 }
                 | PRINTLN string_exp SEMICOLON  {
-                                                strcat(out[cur_block], "  getstatic java.io.PrintStream java.lang.System.out\n");
-                                                strcat(out[cur_block], "  ldc "); strcat(out[cur_block], $2); strcat(out[cur_block], "\n");
-                                                strcat(out[cur_block], "  invokevirtual void java.io.PrintStream.println(java.lang.String)\n\n");
-                                                cur_block += 1;
+                                                Write("  getstatic java.io.PrintStream java.lang.System.out\n");
+                                                Write("  ldc "); Write($2); Write("\n");
+                                                Write("  invokevirtual void java.io.PrintStream.println(java.lang.String)\n\n");
+
+                                                // put mark for buffer
+                                                Num(NORMAL);
+                                                
+                                                bufIndex++;
                                                 }
                 | RETURN SEMICOLON              {
-                                                out[cur_block][0] = '\0';
-                                                strcat(out[cur_block], "  return\n\n");
-                                                cur_block += 1;
+                                                Write("  return\n\n");
+
+                                                // put mark for buffer
+                                                Num(NORMAL);
+                                                
+                                                bufIndex++;
                                                 }
                 | RETURN integer_exp SEMICOLON  {
-                                                out[cur_block][0] = '\0';
-                                                strcat(out[cur_block], "  ireturn\n\n");
-                                                cur_block += 1;
+                                                Write("  ireturn\n\n");
+
+                                                // put mark for buffer
+                                                Num(NORMAL);
+                                                
+                                                bufIndex++;
                                                 }
                 | conditional
                 | loop
                 ;
 
 conditional:    IF L_BRACE bool_exp R_BRACE block ELSE block    {
-                                                                char l[STRSIZE];
-                                                                strcat(ifstmt, "L"); strcat(ifstmt, itos(L, l)); strcat(ifstmt, ":\n  ifeq L"); strcat(ifstmt, itos(L+1, l)); strcat(ifstmt, "\n");
-                                                                strcat(out[1], "  goto L"); strcat(out[1], itos(L+2, l)); strcat(out[1], "\n\nL"); strcat(out[1], itos(L+1, l)); strcat(out[1], ":\n");
-                                                                char b[MAX_LINE_SIZE];
-                                                                b[0] = '\0';
-                                                                strcat(b, "L"); strcat(b, itos(L+2, l)); strcat(b, ":\n");
-                                                                strcat(b, out[0]);
-                                                                strncpy(out[0], b, MAX_LINE_SIZE);
-                                                                cur_block = 0;
-                                                                ifFlag = 2;
-                                                                L += 2;
+
                                                                 }
                 | IF L_BRACE bool_exp R_BRACE block             {
-                                                                char l[STRSIZE];
-                                                                strcat(ifstmt, "L"); strcat(ifstmt, itos(L, l)); strcat(ifstmt, ":\n  ifeq L"); strcat(ifstmt, itos(L+1, l)); strcat(ifstmt, "\n");
-                                                                strcat(out[0], "L"); strcat(out[0], itos(L+1, l)); strcat(out[0], ":\n");
-                                                                cur_block = 0;
-                                                                ifFlag = 1;
-                                                                L += 1;
+                                                                
                                                                 }
                 ;
 
 while_end:      R_B {
-                        loopFlag = 1;
+                        
                     }
                 ;
 while_start:    L_B {
-                        loopFlag = 0;
+                        
                     }
                 ;
 
@@ -821,8 +711,10 @@ while_block:    while_start local_declaration statements while_end
 
 loop:           WHILE L_BRACE bool_exp R_BRACE while_block  {
                                                             char l[STRSIZE];
-                                                            List("L"); List(itos(L, l)); List(":\n");
+                                                            Write("L"); Write(itos(L, l)); Write(":\n");
                                                             L += 1;
+
+                                                            bufIndex++;
                                                             }
                 ;
 
@@ -858,19 +750,18 @@ comma_separated_exps:   comma_separated_exp             {
 comma_separated_exp:    ID                                  {
                                                                 Param *t = malloc(sizeof(Param));
                                                                 list_t* t_cur = lookup($1);
-                                                                list_t* t_glob = lookup_scope($1, 0);
 
-                                                                if (t_glob != NULL)
+                                                                if (t_cur != NULL)
                                                                 {
-                                                                    if (t_glob->st_type == INT_TYPE)
+                                                                    if (t_cur->st_type == INT_TYPE)
                                                                     {
                                                                         t->par_type = INT_TYPE;
                                                                         t->param_name = strdup($1);
-                                                                        t->ival = t_glob->st_ival;
-                                                                        t->sval = strdup(t_glob->st_sval);
+                                                                        t->ival = t_cur->st_ival;
+                                                                        t->sval = strdup(t_cur->st_sval);
                                                                     }
                                                                 }
-                                                                else if (t_cur != NULL && strcmp(t_cur->func, PROGRAM) == 1)
+                                                                else if (t_cur != NULL && cur_scope != 0)
                                                                 {
                                                                     if (t_cur->st_type == INT_TYPE)
                                                                     {
@@ -897,7 +788,7 @@ comma_separated_exp:    ID                                  {
                         ;
 
 function_invocation:       ID L_BRACE R_BRACE   {
-                                                list_t* t = lookup_scope($1, 0);
+                                                list_t* t = lookup($1);
                                                 $$ = t;
                                                 if (t->st_type == FUNCTION_TYPE)
                                                 {
@@ -918,7 +809,7 @@ function_invocation:       ID L_BRACE R_BRACE   {
                                                 }
                                                 }
                            | ID L_BRACE comma_separated_exps R_BRACE{
-                                                                    list_t* t = lookup_scope($1, 0);
+                                                                    list_t* t = lookup($1);
                                                                     $$ = t;
                                                                     if (t->st_type == FUNCTION_TYPE)
                                                                     {
@@ -949,11 +840,11 @@ function_invocation:       ID L_BRACE R_BRACE   {
                                                                                 list_t* temp = lookup(t2->param_name);
                                                                                 if (temp != NULL && temp->glob_flag == 1)
                                                                                 {
-                                                                                    List("  getstatic int "); List(file); List("."); List(temp->st_name); List("\n");
+                                                                                    Write("  getstatic int "); Write(file); Write("."); Write(temp->st_name); Write("\n");
                                                                                 }
                                                                                 else
                                                                                 {
-                                                                                    List("  sipush "); List(t2->sval); List("\n");
+                                                                                    Write("  sipush "); Write(t2->sval); Write("\n");
                                                                                 }
                                                                             }
 
@@ -978,14 +869,17 @@ function_invocation:       ID L_BRACE R_BRACE   {
 
                                                                         if (t->num_of_pars == count)
                                                                         {
-                                                                            List("  invokestatic int "); List(file); List("."); List(t->st_name); List("(");
+                                                                            Write("  invokestatic int "); Write(file); Write("."); Write(t->st_name); Write("(");
                                                                             for (int i = 0; i < t->num_of_pars - 1; i++)
                                                                             {
-                                                                                List("int, ");
+                                                                                Write("int, ");
                                                                             }
-                                                                            List("int)\n");
+                                                                            Write("int)\n");
+
                                                                         }
                                                                         else yyerror("The numbers of parameters are different.");
+
+                                                                        bufIndex++;
                                                                     }
                                                                     else
                                                                     {
@@ -997,54 +891,9 @@ function_invocation:       ID L_BRACE R_BRACE   {
 integer_exp:    integer_exp ADD integer_exp             {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
-                                                        char a[STRSIZE];
                                                         
-                                                        if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && strcmp(t1->func, PROGRAM) == 0 && arg[t1->counter] == NULL)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0 && arg[t2->counter] == NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && strcmp(t1->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        else if (t1 == NULL && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t2 != NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t2 == NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        else if (t1 == NULL && t2 != NULL)
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        List("  iadd\n\n");
+                                                        judge(t1, t2, file, arg, $1, $3);
+                                                        Write("  iadd\n\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1052,58 +901,19 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         i = stoi($1); j = stoi($3);
                                                         sum = i + j;
                                                         $$ = strdup(itos(sum, b));
+
+                                                        // put mark for buffer
+                                                        Num(NORMAL);
+
+                                                        bufIndex++;
                                                         }
                 | integer_exp MINUS integer_exp         {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
-                                                        char a[STRSIZE];
                                                         
-                                                        if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && strcmp(t1->func, PROGRAM) == 0 && arg[t1->counter] == NULL)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0 && arg[t2->counter] == NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && strcmp(t1->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        else if (t1 == NULL && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t2 != NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t2 == NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        else if (t1 == NULL && t2 != NULL)
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        List("  isub\n\n");
+                                                        judge(t1, t2, file, arg, $1, $3);
+
+                                                        Write("  isub\n\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1111,58 +921,19 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         i = stoi($1); j = stoi($3);
                                                         sum = i - j;
                                                         $$ = strdup(itos(sum, b));
+
+                                                        // put mark for buffer
+                                                        Num(NORMAL);
+
+                                                        bufIndex++;
                                                         }
                 | integer_exp TIME integer_exp          {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
-                                                        char a[STRSIZE];
                                                         
-                                                        if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && strcmp(t1->func, PROGRAM) == 0 && arg[t1->counter] == NULL)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0 && arg[t2->counter] == NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && strcmp(t1->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        else if (t1 == NULL && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t2 != NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t2 == NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        else if (t1 == NULL && t2 != NULL)
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        List("  imul\n\n");
+                                                        judge(t1, t2, file, arg, $1, $3);
+
+                                                        Write("  imul\n\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1170,58 +941,19 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         i = stoi($1); j = stoi($3);
                                                         sum = i * j;
                                                         $$ = strdup(itos(sum, b));
+
+                                                        // put mark for buffer
+                                                        Num(NORMAL);
+
+                                                        bufIndex++;
                                                         }
                 | integer_exp DIVIDE integer_exp        {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
-                                                        char a[STRSIZE];
                                                         
-                                                        if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && strcmp(t1->func, PROGRAM) == 0 && arg[t1->counter] == NULL)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0 && arg[t2->counter] == NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && strcmp(t1->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        else if (t1 == NULL && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t2 != NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t2 == NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        else if (t1 == NULL && t2 != NULL)
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        List("  idiv\n\n");
+                                                        judge(t1, t2, file, arg, $1, $3);
+
+                                                        Write("  idiv\n\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1233,58 +965,19 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                             sum = i / j;
                                                             $$ = strdup(itos(sum, b));
                                                         }
+
+                                                        // put mark for buffer
+                                                        Num(NORMAL);
+
+                                                        bufIndex++;
                                                         }
                 | integer_exp MODULUS integer_exp       {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
-                                                        char a[STRSIZE];
                                                         
-                                                        if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && strcmp(t1->func, PROGRAM) == 0 && arg[t1->counter] == NULL)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0 && arg[t2->counter] == NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && strcmp(t1->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        else if (t1 == NULL && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t2 != NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t2 == NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        else if (t1 == NULL && t2 != NULL)
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        List("  irem\n\n");
+                                                        judge(t1, t2, file, arg, $1, $3);
+
+                                                        Write("  irem\n\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1292,31 +985,33 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         i = stoi($1); j = stoi($3);
                                                         sum = i % j;
                                                         $$ = itos(sum, b);
+
+                                                        // put mark for buffer
+                                                        Num(NORMAL);
+
+                                                        bufIndex++;
                                                         }
                 | MINUS integer_exp %prec UMINUS        {
                                                         list_t* t = lookup($2);
-                                                        if (t != NULL && strcmp(t->func, PROGRAM) == 0 && arg[t->counter] == NULL)
+                                                        
+                                                        // return part
+                                                        if (t != NULL && t->neg == 0)
                                                         {
-                                                            strcat(opbuf[opcount], "  getstatic int "); strcat(opbuf[opcount], file); strcat(opbuf[opcount], "."); strcat(opbuf[opcount], t->st_name); strcat(opbuf[opcount], "\n");
+                                                            t->neg = 1;
+                                                            $$ = strdup($2);
                                                         }
-                                                        else if (t != NULL)
+                                                        else if (t != NULL && t->neg == 1)
                                                         {
-                                                            char a[STRSIZE];
-                                                            strcat(opbuf[opcount], "  iload_"); strcat(opbuf[opcount], itos(t->counter, a)); strcat(opbuf[opcount], "\n");
+                                                            t->neg = 0;
+                                                            $$ = strdup($2);
                                                         }
                                                         else
                                                         {
-                                                            strcat(opbuf[opcount], "  sipush "); strcat(opbuf[opcount], $2); strcat(opbuf[opcount], "\n");
+                                                            int i = stoi($2);
+                                                            i = -i;
+                                                            char a[STRSIZE];
+                                                            $$ = strdup(itos(i, a));
                                                         }
-                                                        strcat(opbuf[opcount], "  ineg\n\n");
-                                                        opcount += 1;
-
-                                                        // return part
-                                                        char b[STRSIZE];
-                                                        b[0] = '-';
-                                                        b[1] = '\0';
-                                                        strcat(b, $2);
-                                                        $$ = strdup(b);
                                                         }
                 | L_BRACE integer_exp R_BRACE           {
                                                         $$ = strdup($2);
@@ -1324,59 +1019,15 @@ integer_exp:    integer_exp ADD integer_exp             {
                 | integer_exp LESS integer_exp          {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
-                                                        char a[STRSIZE];
                                                         
-                                                        if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && strcmp(t1->func, PROGRAM) == 0 && arg[t1->counter] == NULL)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0 && arg[t2->counter] == NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && strcmp(t1->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        else if (t1 == NULL && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0)
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t2 != NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else if (t1 != NULL && t2 == NULL)
-                                                        {
-                                                            List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        else if (t1 == NULL && t2 != NULL)
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                        }
-                                                        else
-                                                        {
-                                                            List("  sipush "); List($1); List("\n");
-                                                            List("  sipush "); List($3); List("\n");
-                                                        }
-                                                        List("  isub\n");
+                                                        judge(t1, t2, file, arg, $1, $3);
+
+                                                        Write("  isub\n");
                                                         char l[STRSIZE];
-                                                        List("  iflt L"); List(itos(L, l)); List("\n");
-                                                        List("  iconst_0\n");
-                                                        List("  goto L"); List(itos(L+1, l)); List("\n");
-                                                        List("L"); List(itos(L, l)); List(":\n"); List("  iconst_1\n");
+                                                        Write("  iflt L"); Write(itos(L, l)); Write("\n");
+                                                        Write("  iconst_0\n");
+                                                        Write("  goto L"); Write(itos(L+1, l)); Write("\n");
+                                                        Write("L"); Write(itos(L, l)); Write(":\n"); Write("  iconst_1\n");
                                                         L++;
                                                                                        
                                                         // return part
@@ -1390,69 +1041,24 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         {
                                                             $$ = strdup("0");                                                        
                                                         }
+
+                                                        // put mark for buffer
+                                                        Num(NORMAL);
+
+                                                        bufIndex++;
                                                         }
                 | integer_exp LE integer_exp    {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
-                                                char a[STRSIZE];
+                                                
+                                                judge(t1, t2, file, arg, $1, $3);
 
-                                                if (loopFlag != 0)
-                                                {
-                                                    char l[STRSIZE];
-                                                    List("L"); List(itos(L, l)); List(":\n");
-                                                }
-                                                        
-                                                if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && strcmp(t1->func, PROGRAM) == 0 && arg[t1->counter] == NULL)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0 && arg[t2->counter] == NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && strcmp(t1->func, PROGRAM) == 0)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                else if (t1 == NULL && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0)
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t2 != NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else if (t1 != NULL && t2 == NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                else if (t1 == NULL && t2 != NULL)
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                List("  isub\n");
+                                                Write("  isub\n");
                                                 char l[STRSIZE];
-                                                List("  ifle L"); List(itos(L, l)); List("\n");
-                                                List("  iconst_0\n");
-                                                List("  goto L"); List(itos(L+1, l)); List("\n");
-                                                List("L"); List(itos(L, l)); List(":\n"); List("  iconst_1\n");
+                                                Write("  ifle L"); Write(itos(L, l)); Write("\n");
+                                                Write("  iconst_0\n");
+                                                Write("  goto L"); Write(itos(L+1, l)); Write("\n");
+                                                Write("L"); Write(itos(L, l)); Write(":\n"); Write("  iconst_1\n");
                                                 L++;
 
                                                 // return part
@@ -1466,69 +1072,24 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 {
                                                     $$ = strdup("0");                                                        
                                                 }
+
+                                                // put mark for buffer
+                                                Num(NORMAL);
+
+                                                bufIndex++;
                                                 }
                 | integer_exp E integer_exp     {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
-                                                char a[STRSIZE];
-
-                                                if (loopFlag != 0)
-                                                {
-                                                    char l[STRSIZE];
-                                                    List("L"); List(itos(L, l)); List(":\n");
-                                                }
                                                 
-                                                if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && strcmp(t1->func, PROGRAM) == 0 && arg[t1->counter] == NULL)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0 && arg[t2->counter] == NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && strcmp(t1->func, PROGRAM) == 0)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                else if (t1 == NULL && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0)
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t2 != NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else if (t1 != NULL && t2 == NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                else if (t1 == NULL && t2 != NULL)
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                List("  isub\n");
+                                                judge(t1, t2, file, arg, $1, $3);
+
+                                                Write("  isub\n");
                                                 char l[STRSIZE];
-                                                List("  ifeq L"); List(itos(L, l)); List("\n");
-                                                List("  iconst_0\n");
-                                                List("  goto L"); List(itos(L+1, l)); List("\n");
-                                                List("L"); List(itos(L, l)); List(":\n"); List("  iconst_1\n");
+                                                Write("  ifeq L"); Write(itos(L, l)); Write("\n");
+                                                Write("  iconst_0\n");
+                                                Write("  goto L"); Write(itos(L+1, l)); Write("\n");
+                                                Write("L"); Write(itos(L, l)); Write(":\n"); Write("  iconst_1\n");
                                                 L++;
 
                                                 // return part
@@ -1542,69 +1103,24 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 {
                                                     $$ = strdup("0");                                                        
                                                 }
+
+                                                // put mark for buffer
+                                                Num(NORMAL);
+
+                                                bufIndex++;
                                                 }
                 | integer_exp GE integer_exp    {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
-                                                char a[STRSIZE];
-
-                                                if (loopFlag != 0)
-                                                {
-                                                    char l[STRSIZE];
-                                                    List("L"); List(itos(L, l)); List(":\n");
-                                                }
                                                 
-                                                if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && strcmp(t1->func, PROGRAM) == 0 && arg[t1->counter] == NULL)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0 && arg[t2->counter] == NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && strcmp(t1->func, PROGRAM) == 0)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                else if (t1 == NULL && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0)
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t2 != NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else if (t1 != NULL && t2 == NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                else if (t1 == NULL && t2 != NULL)
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                List("  isub\n");
+                                                judge(t1, t2, file, arg, $1, $3);
+
+                                                Write("  isub\n");
                                                 char l[STRSIZE];
-                                                List("  ifge L"); List(itos(L, l)); List("\n");
-                                                List("  iconst_0\n");
-                                                List("  goto L"); List(itos(L+1, l)); List("\n");
-                                                List("L"); List(itos(L, l)); List(":\n"); List("  iconst_1\n");
+                                                Write("  ifge L"); Write(itos(L, l)); Write("\n");
+                                                Write("  iconst_0\n");
+                                                Write("  goto L"); Write(itos(L+1, l)); Write("\n");
+                                                Write("L"); Write(itos(L, l)); Write(":\n"); Write("  iconst_1\n");
                                                 L++;
 
                                                 // return part
@@ -1618,69 +1134,24 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 {
                                                     $$ = strdup("0");                                                        
                                                 }
+
+                                                // put mark for buffer
+                                                Num(NORMAL);
+
+                                                bufIndex++;
                                                 }
                 | integer_exp GREATER integer_exp   {
                                                     list_t* t1 = lookup($1);
                                                     list_t* t2 = lookup($3);
-                                                    char a[STRSIZE];
                                                     
-                                                    if (loopFlag != 0)
-                                                    {
-                                                        char l[STRSIZE];
-                                                        List("L"); List(itos(L, l)); List(":\n");
-                                                    }
+                                                    judge(t1, t2, file, arg, $1, $3);
 
-                                                    if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
-                                                    {
-                                                        List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                        List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                    }
-                                                    else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && strcmp(t1->func, PROGRAM) == 0 && arg[t1->counter] == NULL)
-                                                    {
-                                                        List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                        List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                    }
-                                                    else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0 && arg[t2->counter] == NULL)
-                                                    {
-                                                        List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                        List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                    }
-                                                    else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && strcmp(t1->func, PROGRAM) == 0)
-                                                    {
-                                                        List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                        List("  sipush "); List($3); List("\n");
-                                                    }
-                                                    else if (t1 == NULL && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0)
-                                                    {
-                                                        List("  sipush "); List($1); List("\n");
-                                                        List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                    }
-                                                    else if (t1 != NULL && t2 != NULL)
-                                                    {
-                                                        List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                        List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                    }
-                                                    else if (t1 != NULL && t2 == NULL)
-                                                    {
-                                                        List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                        List("  sipush "); List($3); List("\n");
-                                                    }
-                                                    else if (t1 == NULL && t2 != NULL)
-                                                    {
-                                                        List("  sipush "); List($1); List("\n");
-                                                        List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                    }
-                                                    else
-                                                    {
-                                                        List("  sipush "); List($1); List("\n");
-                                                        List("  sipush "); List($3); List("\n");
-                                                    }
-                                                    List("  isub\n");
+                                                    Write("  isub\n");
                                                     char l[STRSIZE];
-                                                    List("  ifgt L"); List(itos(L, l)); List("\n");
-                                                    List("  iconst_0\n");
-                                                    List("  goto L"); List(itos(L+1, l)); List("\n");
-                                                    List("L"); List(itos(L, l)); List(":\n"); List("  iconst_1\n");
+                                                    Write("  ifgt L"); Write(itos(L, l)); Write("\n");
+                                                    Write("  iconst_0\n");
+                                                    Write("  goto L"); Write(itos(L+1, l)); Write("\n");
+                                                    Write("L"); Write(itos(L, l)); Write(":\n"); Write("  iconst_1\n");
                                                     L++;
 
                                                     // return part
@@ -1694,69 +1165,24 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                     {
                                                         $$ = strdup("0");                                                        
                                                     }
+
+                                                    // put mark for buffer
+                                                    Num(NORMAL);
+
+                                                    bufIndex++;
                                                     }
                 | integer_exp NE integer_exp    {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
-                                                char a[STRSIZE];
-
-                                                if (loopFlag != 0)
-                                                {
-                                                    char l[STRSIZE];
-                                                    List("L"); List(itos(L, l)); List(":\n");
-                                                }
                                                 
-                                                if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && strcmp(t1->func, PROGRAM) == 0 && arg[t1->counter] == NULL)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0 && arg[t2->counter] == NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && strcmp(t1->func, PROGRAM) == 0)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                else if (t1 == NULL && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0)
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t2 != NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else if (t1 != NULL && t2 == NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                else if (t1 == NULL && t2 != NULL)
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                List("  isub\n");
+                                                judge(t1, t2, file, arg, $1, $3);
+                                                
+                                                Write("  isub\n");
                                                 char l[STRSIZE];
-                                                List("  ifne L"); List(itos(L, l)); List("\n");
-                                                List("  iconst_0\n");
-                                                List("  goto L"); List(itos(L+1, l)); List("\n");
-                                                List("L"); List(itos(L, l)); List(":\n"); List("  iconst_1\n");
+                                                Write("  ifne L"); Write(itos(L, l)); Write("\n");
+                                                Write("  iconst_0\n");
+                                                Write("  goto L"); Write(itos(L+1, l)); Write("\n");
+                                                Write("L"); Write(itos(L, l)); Write(":\n"); Write("  iconst_1\n");
                                                 L++;
 
                                                 // return part
@@ -1770,23 +1196,28 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 {
                                                     $$ = strdup("0");                                                        
                                                 }
+
+                                                // put mark for buffer
+                                                Num(NORMAL);
+
+                                                bufIndex++;
                                                 }
                 | EXCLAMATION integer_exp       {
                                                 list_t* t = lookup($2);
-                                                if (t != NULL && t->glob_flag == 1 && strcmp(t->func, PROGRAM) == 0 && arg[t->counter] == NULL)
+                                                if (t != NULL && t->glob_flag == 1 && t->scope == 0 && arg[t->counter] == NULL)
                                                 {
-                                                    List("  getstatic int "); List(file); List("."); List(t->st_name); List("\n");
+                                                    Write("  getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                 }
                                                 else if (t != NULL)
                                                 {
                                                     char a[STRSIZE];
-                                                    List("  iload_"); List(itos(t->counter, a)); List("\n");
+                                                    Write("  iload_"); Write(itos(t->counter, a)); Write("\n");
                                                 }
                                                 else
                                                 {
-                                                    List("  sipush "); List($2); List("\n");
+                                                    Write("  sipush "); Write($2); Write("\n");
                                                 }
-                                                List("  ixor\n\n");
+                                                Write("  ixor\n\n");
 
                                                 // return part
                                                 int i;
@@ -1799,58 +1230,19 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 {
                                                     $$ = strdup("0");                                                        
                                                 }
+
+                                                // put mark for buffer
+                                                Num(NORMAL);
+
+                                                bufIndex++;
                                                 }
                 | integer_exp AND integer_exp   {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
-                                                char a[STRSIZE];
                                                 
-                                                if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && strcmp(t1->func, PROGRAM) == 0 && arg[t1->counter] == NULL)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0 && arg[t2->counter] == NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && strcmp(t1->func, PROGRAM) == 0)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                else if (t1 == NULL && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0)
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t2 != NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else if (t1 != NULL && t2 == NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                else if (t1 == NULL && t2 != NULL)
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                List("  iand\n\n");
+                                                judge(t1, t2, file, arg, $1, $3);
+
+                                                Write("  iand\n\n");
 
                                                 // return part
                                                 int i, j;
@@ -1863,58 +1255,19 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 {
                                                     $$ = strdup("0");                                                        
                                                 }
+
+                                                // put mark for buffer
+                                                Num(NORMAL);
+
+                                                bufIndex++;
                                                 }   
                 | integer_exp OR integer_exp    {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
-                                                char a[STRSIZE];
                                                 
-                                                if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && strcmp(t1->func, PROGRAM) == 0 && strcmp(t2->func, PROGRAM) == 0)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && strcmp(t1->func, PROGRAM) == 0 && arg[t1->counter] == NULL)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0 && arg[t2->counter] == NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && strcmp(t1->func, PROGRAM) == 0)
-                                                {
-                                                    List("  getstatic int "); List(file); List("."); List(t1->st_name); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                else if (t1 == NULL && t2 != NULL && t2->glob_flag == 1 && strcmp(t2->func, PROGRAM) == 0)
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  getstatic int "); List(file); List("."); List(t2->st_name); List("\n");
-                                                }
-                                                else if (t1 != NULL && t2 != NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else if (t1 != NULL && t2 == NULL)
-                                                {
-                                                    List("  iload_"); List(itos(t1->counter, a)); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                else if (t1 == NULL && t2 != NULL)
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  iload_"); List(itos(t2->counter, a)); List("\n");
-                                                }
-                                                else
-                                                {
-                                                    List("  sipush "); List($1); List("\n");
-                                                    List("  sipush "); List($3); List("\n");
-                                                }
-                                                List("  ior\n\n");
+                                                judge(t1, t2, file, arg, $1, $3);
+
+                                                Write("  ior\n\n");
 
                                                 // return part
                                                 int i, j;
@@ -1927,6 +1280,11 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 {
                                                     $$ = strdup("0");                                                        
                                                 }
+
+                                                // put mark for buffer
+                                                Num(NORMAL);
+
+                                                bufIndex++;
                                                 }
                 | INTEGER                       {
                                                     $$ = strdup($1);
@@ -1971,47 +1329,6 @@ void yyerror(char* msg)
     fprintf(stderr, "line %d: %s\n", linenum, msg);
 }
 
-int stoi(char *str)
-{
-  int result;
-  int puiss;
-
-  result = 0;
-  puiss = 1;
-  while (('-' == (*str)) || ((*str) == '+'))
-    {
-      if (*str == '-')
-        puiss = puiss * -1;
-      str++;
-    }
-  while ((*str >= '0') && (*str <= '9'))
-    {
-      result = (result * 10) + ((*str) - '0');
-      str++;
-    }
-  return (result * puiss);
-}
-
-char* itos(int i, char b[]){
-    char const digit[] = "0123456789";
-    char* p = b;
-    if(i<0){
-        *p++ = '-';
-        i *= -1;
-    }
-    int shifter = i;
-    do{ //Move to where representation ends
-        ++p;
-        shifter = shifter/10;
-    }while(shifter);
-    *p = '\0';
-    do{ //Move back, inserting digits as u go
-        *--p = digit[i%10];
-        i = i/10;
-    }while(i);
-    return b;
-}
-
 int main(int argc, char** argv)
 {
     /* create the hash table */
@@ -2034,11 +1351,11 @@ int main(int argc, char** argv)
     file = strdup(filename);
     char temp[] = ".jasm";
     strcat(filename, temp);
-    javaa = fopen(filename, "w");           /* open a file for java bytecode */
-    fprintf(javaa, "/*-------------------------------------------------*/\n");
-    fprintf(javaa, "/*              Java Assembly Code                 */\n");
-    fprintf(javaa, "/*-------------------------------------------------*/\n\n");
-    fprintf(javaa, "class %s\n{\n", file);   /* make the file name as the class name */
+    javaa = fopen(filename, "w");                   /* open a file for java bytecode */
+    List("/*-------------------------------------------------*/\n");
+    List("/*              Java Assembly Code                 */\n");
+    List("/*-------------------------------------------------*/\n\n");
+    List("class "); List(file); List("\n{\n");      /* make the file name as the class name */
     /*-----------------------------------------------------------------------------------*/
 
     int flag;
@@ -2049,7 +1366,7 @@ int main(int argc, char** argv)
         yyerror("Parsing error !");     /* syntax error */
 
     fclose(yyin);                       /* close input file */
-    fprintf(javaa, "\n}\n");              /* close the class */
+    List("\n}\n");                      /* close the class */
     fclose(javaa);                      /* close the javaa */
 
     /* output symbol table */
@@ -2059,4 +1376,58 @@ int main(int argc, char** argv)
     fclose(yyout);
 
     return 0;
+}
+
+void judge(list_t* t1, list_t* t2, char* file, char arg[STRSIZE][STRSIZE], char* $1, char* $3)
+{
+	char cat[MAX_LINE_SIZE];
+    cat[0] = '\0';
+	char a[SIZE];
+	if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && t1->scope == 0 && t2->scope == 0)
+	{
+		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t1->st_name); strcat(cat, "\n");
+		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t2->st_name); strcat(cat, "\n");
+	}
+	else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && t1->scope == 0 && arg[t1->counter] == NULL)
+	{
+		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t1->st_name); strcat(cat, "\n");
+		strcat(cat, "  iload_"); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
+	}
+	else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && t2->scope == 0 && arg[t2->counter] == NULL)
+	{
+		strcat(cat, "  iload_"); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
+		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t2->st_name); strcat(cat, "\n");
+	}
+	else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && t1->scope == 0)
+	{
+		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t1->st_name); strcat(cat, "\n");
+		strcat(cat, "  sipush "); strcat(cat, $3); strcat(cat, "\n");
+	}
+	else if (t1 == NULL && t2 != NULL && t2->glob_flag == 1 && t2->scope == 0)
+	{
+		strcat(cat, "  sipush "); strcat(cat, $1); strcat(cat, "\n");
+		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t2->st_name); strcat(cat, "\n");
+	}
+	else if (t1 != NULL && t2 != NULL)
+	{
+		strcat(cat, "  iload_"); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
+		strcat(cat, "  iload_"); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
+	}
+	else if (t1 != NULL && t2 == NULL)
+	{
+		strcat(cat, "  iload_"); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
+		strcat(cat, "  sipush "); strcat(cat, $3); strcat(cat, "\n");
+	}
+	else if (t1 == NULL && t2 != NULL)
+	{
+		strcat(cat, "  sipush "); strcat(cat, $1); strcat(cat, "\n");
+		strcat(cat, "  iload_"); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
+	}
+	else
+	{
+		strcat(cat, "  sipush "); strcat(cat, $1); strcat(cat, "\n");
+		strcat(cat, "  sipush "); strcat(cat, $3); strcat(cat, "\n");
+	}
+
+	Write(cat);
 }

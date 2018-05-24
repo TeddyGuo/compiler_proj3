@@ -98,10 +98,10 @@ typedef struct list{
 	int num_of_pars; // Meanwhile, it record the current position of the parameters
 	// pointer to next item in the list
 	struct list *next;
-	char *func; // record which function the identifier in
 	int counter; // record the counter of a variable in the current func
 	short glob_flag; // record whether it is a global variable or not
 	short arg_flag; // record whether it is a argument or not
+	short neg; // judge whether it is negative or not
 }list_t;
 
 /* the hash table */
@@ -110,9 +110,12 @@ static list_t **hash_table;
 // Function Declarations
 void create(); // initialize hash table
 unsigned int hash(char *key); // hash function for insert
-void insert(char *name, int len, int type, int lineno, char* func); // insert entry plus func
+void insert(char *name, int len, int type, int lineno); // insert entry plus func
 list_t *lookup(char *name); // search for entry
 list_t *lookup_scope(char *name, int scope); // search for entry in scope
 void hide_scope(); // hide the current scope
 void incr_scope(); // go to next scope
 void dump(FILE *of); // dump file
+
+int             stoi(char *str);
+char*           itos(int i, char b[]);
