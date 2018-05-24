@@ -50,6 +50,7 @@ Finally, I got a good way to produce java bytecode after I know the principle of
 Try to ifstmt and whilestmt
 Try while_loop
 Now, I have to deal with local and global variables problem since it cannot define well.
+Try to generate fib.jasm correctly. Now, the problem is when something equals something, it cannot write correclty since ID part does not write something in.
 */
 %{
 #include "symbols.c"
@@ -94,8 +95,6 @@ char arg[STRSIZE][STRSIZE]; // record the names of arguments in the current func
 char buffer[STRSIZE][MAX_LINE_SIZE]; // reserve the code generation in the func cause it is fucking reversed.
 int bufIndex = 0;
 int bufferMark[STRSIZE]; // remark what kind of handle about the match buffer blocks.
-
-char constant[STRSIZE][STRSIZE]; // record constant for generation
 
 int L = 0; // stage counter
 
@@ -151,19 +150,20 @@ void judge(list_t*, list_t*, char*, char arg[STRSIZE][STRSIZE], char*, char*); /
 %start program              /* the initial entry point */
 
 %%
-program:        functions | global_declaration functions
+program:        functions
+                | global_declaration functions
                 ;
 
 global_declaration:     global_declaration constant_declaration
-                        | global_declaration variable_declaration
+                        | global_declaration glob_variable_declaration
                         | constant_declaration
-                        | variable_declaration
+                        | glob_variable_declaration
                         ;
 
 local_declaration:      local_declaration constant_declaration
-                        | local_declaration variable_declaration
+                        | local_declaration local_variable_declaration
                         | constant_declaration
-                        | variable_declaration
+                        | local_variable_declaration
                         ;
 
 block:          start local_declaration statements end               
@@ -192,15 +192,7 @@ constant_declaration:   LET ID ASSIGN bool_exp SEMICOLON            {
                                                                         t = lookup($2);
                                                                         t->st_ival = stoi($4);
                                                                         t->st_sval = strdup($4);
-                                                                        for (int i = 0; i < STRSIZE; i++)
-                                                                        {
-                                                                            if (constant[i] != NULL)
-                                                                            {
-                                                                                constant[i][0] = '\0';
-                                                                                strncpy(constant[i], $2, strlen($2));
-                                                                                break;
-                                                                            }
-                                                                        }
+                                                                        t->constant = 1;
 
                                                                         if (strcmp($4, "true") == 0)
                                                                         {
@@ -211,7 +203,7 @@ constant_declaration:   LET ID ASSIGN bool_exp SEMICOLON            {
                                                                             Write("  iconst_0\n");
                                                                         }
                                                                         else
-                                                                            Write("   sipush "); Write($4); Write("\n");
+                                                                            Write("  sipush "); Write($4); Write("\n");
 
                                                                         bufIndex++;
                                                                     }
@@ -225,15 +217,7 @@ constant_declaration:   LET ID ASSIGN bool_exp SEMICOLON            {
                                                                         insert($2, strlen($2), CONST_STR_TYPE, linenum);
                                                                         t = lookup($2);
                                                                         t->st_sval = strdup($4);
-                                                                        for (int i = 0; i < STRSIZE; i++)
-                                                                        {
-                                                                            if (constant[i] != NULL)
-                                                                            {
-                                                                                constant[i][0] = '\0';
-                                                                                strncpy(constant[i], $2, strlen($2));
-                                                                                break;
-                                                                            }
-                                                                        }
+                                                                        t->constant = 1;
 
                                                                         Write(" ldc "); Write($4); Write("\n");
 
@@ -250,15 +234,7 @@ constant_declaration:   LET ID ASSIGN bool_exp SEMICOLON            {
                                                                                 t = lookup($2);
                                                                                 t->st_ival = stoi($6);
                                                                                 t->st_sval = strdup($6);
-                                                                                for (int i = 0; i < STRSIZE; i++)
-                                                                                {
-                                                                                    if (constant[i] != NULL)
-                                                                                    {
-                                                                                        constant[i][0] = '\0';
-                                                                                        strncpy(constant[i], $2, strlen($2));
-                                                                                        break;
-                                                                                    }
-                                                                                }
+                                                                                t->constant = 1;
 
                                                                                 Write(" sipush "); Write($6); Write("\n");
 
@@ -275,15 +251,8 @@ constant_declaration:   LET ID ASSIGN bool_exp SEMICOLON            {
                                                                                 t = lookup($2);
                                                                                 t->st_ival = stoi($6);
                                                                                 t->st_sval = strdup($6);
-                                                                                for (int i = 0; i < STRSIZE; i++)
-                                                                                {
-                                                                                    if (constant[i] != NULL)
-                                                                                    {
-                                                                                        constant[i][0] = '\0';
-                                                                                        strncpy(constant[i], $2, strlen($2));
-                                                                                        break;
-                                                                                    }
-                                                                                }
+                                                                                t->constant = 1;
+
                                                                                 if (strcmp($6, "true") == 0)
                                                                                 {
                                                                                     Write("  iconst_1\n");
@@ -307,15 +276,7 @@ constant_declaration:   LET ID ASSIGN bool_exp SEMICOLON            {
                                                                                 insert($2, strlen($2), CONST_STR_TYPE, linenum);
                                                                                 t = lookup($2);
                                                                                 t->st_sval = strdup($6);
-                                                                                for (int i = 0; i < STRSIZE; i++)
-                                                                                {
-                                                                                    if (constant[i] != NULL)
-                                                                                    {
-                                                                                        constant[i][0] = '\0';
-                                                                                        strncpy(constant[i], $2, strlen($2));
-                                                                                        break;
-                                                                                    }
-                                                                                }
+                                                                                t->constant = 1;
                                                                                
                                                                                 Write(" ldc "); Write($6); Write("\n");
 
@@ -325,22 +286,15 @@ constant_declaration:   LET ID ASSIGN bool_exp SEMICOLON            {
                                                                             }
                         ;
 
-variable_declaration:   LET MUT ID SEMICOLON                            {
+glob_variable_declaration:   LET MUT ID SEMICOLON                       {
                                                                         list_t* t = lookup($3);
 
-                                                                        if (t == NULL && cur_scope == 1)
-                                                                        {
-                                                                            insert($3, strlen($3), UNDEF, linenum);
-                                                                            t = lookup($3);
-                                                                            t->glob_flag = 0;
-                                                                            t->counter = counter;
-                                                                            counter++;
-                                                                        }
-                                                                        else if (t == NULL && cur_scope == 0)
+                                                                        if (t == NULL && cur_scope == 0)
                                                                         {
                                                                             insert($3, strlen($3), UNDEF, linenum);
                                                                             t = lookup($3);
                                                                             t->glob_flag = 1;
+                                                                            t->constant = 0;
                                                                             List("field static int "); List($3); List("\n");
                                                                         }
                                                                         else Trace("line %d: Redeclaration of identifier.\n", linenum);
@@ -350,19 +304,12 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                         | LET MUT ID COLON INT SEMICOLON                {
                                                                         list_t* t = lookup($3);
 
-                                                                        if (t == NULL && cur_scope == 1)
-                                                                        {
-                                                                            insert($3, strlen($3), INT_TYPE, linenum);
-                                                                            t = lookup($3);
-                                                                            t->glob_flag = 0;
-                                                                            t->counter = counter;
-                                                                            counter++;
-                                                                        }
-                                                                        else if (t == NULL && cur_scope == 0)
+                                                                        if (t == NULL && cur_scope == 0)
                                                                         {
                                                                             insert($3, strlen($3), INT_TYPE, linenum);
                                                                             t = lookup($3);
                                                                             t->glob_flag = 1;
+                                                                            t->constant = 0;
                                                                             List("field static int "); List($3); List("\n");
                                                                         }
                                                                         else Trace("line %d: Redeclaration of identifier.\n", linenum);
@@ -372,7 +319,72 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                         | LET MUT ID ASSIGN integer_exp SEMICOLON       {
                                                                         list_t* t = lookup($3);
 
-                                                                        if (t == NULL && cur_scope == 1)
+                                                                        if (t == NULL && cur_scope == 0)
+                                                                        {
+                                                                            insert($3, strlen($3), INT_TYPE, linenum);
+                                                                            t = lookup($3);
+                                                                            t->glob_flag = 1;
+                                                                            t->st_ival = stoi($5);
+                                                                            t->st_sval = strdup($5);
+                                                                            t->constant = 0;
+                                                                            List("field static int "); List($3); List(" = "); List($5); List("\n");
+                                                                        }
+                                                                        else Trace("line %d: Redeclaration of identifier.\n", linenum);
+                                                                        }        
+                        | LET MUT ID COLON INT ASSIGN integer_exp SEMICOLON     {
+                                                                                list_t* t = lookup($3);
+
+                                                                                if (t == NULL && cur_scope == 0)
+                                                                                {
+                                                                                    insert($3, strlen($3), INT_TYPE, linenum);
+                                                                                    t = lookup($3);
+                                                                                    t->glob_flag = 1;
+                                                                                    t->constant = 0;
+                                                                                    List("field static int "); List($3); List(" = "); List("\n");
+                                                                                }
+                                                                                else Trace("line %d: Redeclaration of identifier.\n", linenum);
+                                                                                }
+                        ;
+local_variable_declaration:   LET MUT ID SEMICOLON                       {
+                                                                        list_t* t = lookup($3);
+
+                                                                        if (t == NULL)
+                                                                        {
+                                                                            insert($3, strlen($3), UNDEF, linenum);
+                                                                            t = lookup($3);
+                                                                            t->glob_flag = 0;
+                                                                            t->counter = counter;
+                                                                            t->st_ival = stoi("0");
+                                                                            t->st_sval = strdup("0");
+                                                                            t->constant = 0;
+                                                                            counter++;
+                                                                        }
+                                                                        else Trace("line %d: Redeclaration of identifier.\n", linenum);
+
+                                                                        
+                                                                        }
+                        | LET MUT ID COLON INT SEMICOLON                {
+                                                                        list_t* t = lookup($3);
+
+                                                                        if (t == NULL)
+                                                                        {
+                                                                            insert($3, strlen($3), INT_TYPE, linenum);
+                                                                            t = lookup($3);
+                                                                            t->glob_flag = 0;
+                                                                            t->counter = counter;
+                                                                            t->st_ival = stoi("0");
+                                                                            t->st_sval = strdup("0");
+                                                                            t->constant = 0;
+                                                                            counter++;
+                                                                        }
+                                                                        else Trace("line %d: Redeclaration of identifier.\n", linenum);
+
+                                                                        
+                                                                        }
+                        | LET MUT ID ASSIGN integer_exp SEMICOLON       {
+                                                                        list_t* t = lookup($3);
+
+                                                                        if (t == NULL)
                                                                         {
                                                                             insert($3, strlen($3), INT_TYPE, linenum);
                                                                             t = lookup($3);
@@ -380,6 +392,7 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                             t->counter = counter;
                                                                             t->st_ival = stoi($5);
                                                                             t->st_sval = strdup($5);
+                                                                            t->constant = 0;
                                                                             counter++;
                                                                             Write("  sipush "); Write($5); Write("\n");
                                                                             
@@ -392,21 +405,12 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
 
                                                                             bufIndex++;
                                                                         }
-                                                                        else if (t == NULL && cur_scope == 0)
-                                                                        {
-                                                                            insert($3, strlen($3), INT_TYPE, linenum);
-                                                                            t = lookup($3);
-                                                                            t->glob_flag = 1;
-                                                                            t->st_ival = stoi($5);
-                                                                            t->st_sval = strdup($5);
-                                                                            List("field static int "); List($3); List(" = "); List($5); List("\n");
-                                                                        }
                                                                         else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                         }        
                         | LET MUT ID COLON INT ASSIGN integer_exp SEMICOLON     {
                                                                                 list_t* t = lookup($3);
 
-                                                                                if (t == NULL && cur_scope == 1)
+                                                                                if (t == NULL)
                                                                                 {
                                                                                     insert($3, strlen($3), INT_TYPE, linenum);
                                                                                     t = lookup($3);
@@ -414,6 +418,7 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                                     t->counter = counter;
                                                                                     t->st_ival = stoi($7);
                                                                                     t->st_sval = strdup($7);
+                                                                                    t->constant = 0;
                                                                                     counter++;
                                                                                     Write("  sipush "); Write($7); Write("\n");
 
@@ -425,13 +430,6 @@ variable_declaration:   LET MUT ID SEMICOLON                            {
                                                                                     Num(NORMAL);
 
                                                                                     bufIndex++;
-                                                                                }
-                                                                                else if (t == NULL && cur_scope == 0)
-                                                                                {
-                                                                                    insert($3, strlen($3), INT_TYPE, linenum);
-                                                                                    t = lookup($3);
-                                                                                    t->glob_flag = 1;
-                                                                                    List("field static int "); List($3); List(" = "); List("\n");
                                                                                 }
                                                                                 else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                                 }
@@ -448,8 +446,8 @@ fn_block:       L_B local_declaration statements end
                 | L_B end                                           
                 ;
 
-functions:      functions functions                                      
-                | function
+functions:      functions functions                              
+                | function         
                 ;
 
 function:       FN ID fn_start R_BRACE fn_block                     {
@@ -662,8 +660,13 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                                         }
                                                                         else
                                                                         {
-                                                                            Write("  sipush "); Write($3); Write("\n");
+                                                                            list_t* temp = lookup($3);
                                                                             char a[STRSIZE];
+
+                                                                            if (temp != NULL && temp->constant == 0)
+                                                                            {
+                                                                                Write("  iload "); Write(itos(temp->counter, a)); Write("\n");
+                                                                            }
                                                                             Write("  istore "); Write(itos(t->counter, a)); Write("\n\n");
                                                                         }
 
@@ -821,26 +824,36 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE block    {
                                                                 char str[MAX_LINE_SIZE];
                                                                 char l[STRSIZE];
                                                                 str[0] = '\0';
+
+                                                                // judge I should pop back how many blocks
+                                                                int i, j;
+                                                                for (i = bufIndex - 1; i >= 0; i--)
+                                                                {
+                                                                    if (bufferMark[i] == BOOLEXP)
+                                                                    {
+                                                                        break;
+                                                                    }
+                                                                }
                                                                 
                                                                 if (strcmp($3, "true") == 0 || strcmp($3, "false") == 0)
                                                                 {
-                                                                    strcat(str, buffer[bufIndex - 2]);
-                                                                    strcat(str, buffer[bufIndex - 1]);             
+                                                                    for (j = i; j < bufIndex; j++) strcat(str, buffer[i]);
+                                                                          
                                                                     strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                 }
                                                                 else
                                                                 {
-                                                                    strcat(str, buffer[bufIndex - 2]);
+                                                                    strcat(str, buffer[i]);
                                                                     strcat(str, "  goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
                                                                     strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                     strcat(str, "  iconst_1\n");
-                                                                    strcat(str, buffer[bufIndex - 1]);
+                                                                    for (j = i + 1; j < bufIndex; j++) strcat(str, buffer[j]);
                                                                     strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                 }
 
-                                                                buffer[bufIndex - 2][0] = '\0';
-                                                                buffer[bufIndex - 1][0] = '\0';
-                                                                bufIndex -= 2;
+                                                                for (j = i; j < bufIndex; j++) buffer[i][0] = '\0';
+                                                                
+                                                                bufIndex -= i;
                                                                 Write(str);
                                                                 }
                 ;
@@ -1450,7 +1463,10 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 if (t->st_type == INT_TYPE || t->st_type == CONST_INT_TYPE)
                                                 {
                                                     char b[STRSIZE];
+
                                                     $$ = strdup(t->st_name);
+
+                                                    
                                                 }
                                                 else
                                                 {
@@ -1540,22 +1556,23 @@ void judge(list_t* t1, list_t* t2, char* file, char arg[STRSIZE][STRSIZE], char*
 	char cat[MAX_LINE_SIZE];
     cat[0] = '\0';
 	char a[SIZE];
-	if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1 && t1->scope == 0 && t2->scope == 0)
+
+	if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1)
 	{
 		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t1->st_name); strcat(cat, "\n");
 		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t2->st_name); strcat(cat, "\n");
 	}
-	else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && t1->scope == 0 && arg[t1->counter] == NULL)
+	else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && arg[t1->counter] == NULL)
 	{
 		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t1->st_name); strcat(cat, "\n");
 		strcat(cat, "  iload "); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
 	}
-	else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && t2->scope == 0 && arg[t2->counter] == NULL)
+	else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && arg[t2->counter] == NULL)
 	{
 		strcat(cat, "  iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
 		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t2->st_name); strcat(cat, "\n");
 	}
-	else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && t1->scope == 0)
+	else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL)
 	{
 		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t1->st_name); strcat(cat, "\n");
 		strcat(cat, "  sipush "); strcat(cat, $3); strcat(cat, "\n");
@@ -1565,11 +1582,21 @@ void judge(list_t* t1, list_t* t2, char* file, char arg[STRSIZE][STRSIZE], char*
 		strcat(cat, "  sipush "); strcat(cat, $1); strcat(cat, "\n");
 		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t2->st_name); strcat(cat, "\n");
 	}
-	else if (t1 != NULL && t2 != NULL)
+	else if (t1 != NULL && t2 != NULL && t1->constant == 0 && t2->constant == 0)
 	{
 		strcat(cat, "  iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
 		strcat(cat, "  iload "); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
 	}
+    else if (t1 != NULL && t2 != NULL && t1->constant == 1 && t2->constant == 0)
+    {
+        strcat(cat, "  sipush "); strcat(cat, t1->st_sval); strcat(cat, "\n");
+		strcat(cat, "  iload "); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
+    }
+    else if (t1 != NULL && t2 != NULL && t1->constant == 0 && t2->constant == 1)
+    {
+		strcat(cat, "  iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
+        strcat(cat, "  sipush "); strcat(cat, t2->st_sval); strcat(cat, "\n");
+    }
 	else if (t1 != NULL && t2 == NULL)
 	{
 		strcat(cat, "  iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
@@ -1582,8 +1609,8 @@ void judge(list_t* t1, list_t* t2, char* file, char arg[STRSIZE][STRSIZE], char*
 	}
 	else
 	{
-		strcat(cat, "  sipush "); strcat(cat, $1); strcat(cat, "\n");
-		strcat(cat, "  sipush "); strcat(cat, $3); strcat(cat, "\n");
+		strcat(cat, "  sipush "); strcat(cat, t1->st_sval); strcat(cat, "\n");
+		strcat(cat, "  sipush "); strcat(cat, t2->st_sval); strcat(cat, "\n");
 	}
 
 	Write(cat);

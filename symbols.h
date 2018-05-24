@@ -102,6 +102,7 @@ typedef struct list{
 	short glob_flag; // record whether it is a global variable or not
 	short arg_flag; // record whether it is a argument or not
 	short neg; // judge whether it is negative or not
+	short constant; // judge whether it is a constant or not
 }list_t;
 
 /* the hash table */
