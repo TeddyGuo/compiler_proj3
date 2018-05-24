@@ -49,6 +49,7 @@ Today, I add more blocks for judge whether it is a while_loop or if_els_stmt aft
 Finally, I got a good way to produce java bytecode after I know the principle of bison since it is bottom-up parsing.
 Try to ifstmt and whilestmt
 Try while_loop
+Now, I have to deal with local and global variables problem since it cannot define well.
 */
 %{
 #include "symbols.c"
@@ -94,7 +95,6 @@ char buffer[STRSIZE][MAX_LINE_SIZE]; // reserve the code generation in the func 
 int bufIndex = 0;
 int bufferMark[STRSIZE]; // remark what kind of handle about the match buffer blocks.
 
-int counter = 0; // cause we have some local variables, I use this counter to record the number of next one.
 char constant[STRSIZE][STRSIZE]; // record constant for generation
 
 int L = 0; // stage counter
@@ -183,7 +183,7 @@ start:          L_B                                                 {
                                                                     }
                 ;
 
-constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
+constant_declaration:   LET ID ASSIGN bool_exp SEMICOLON            {
                                                                     list_t* t = lookup($2);
 
                                                                     if (t == NULL)
@@ -201,9 +201,46 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                                 break;
                                                                             }
                                                                         }
+
+                                                                        if (strcmp($4, "true") == 0)
+                                                                        {
+                                                                            Write("  iconst_1\n");
+                                                                        }
+                                                                        else if (strcmp($4, "false") == 0)
+                                                                        {
+                                                                            Write("  iconst_0\n");
+                                                                        }
+                                                                        else
+                                                                            Write("   sipush "); Write($4); Write("\n");
+
+                                                                        bufIndex++;
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
-                                                                    }        
+                                                                    }
+                        | LET ID ASSIGN string_exp SEMICOLON        {
+                                                                    list_t* t = lookup($2);
+
+                                                                    if (t == NULL)
+                                                                    {
+                                                                        insert($2, strlen($2), CONST_STR_TYPE, linenum);
+                                                                        t = lookup($2);
+                                                                        t->st_sval = strdup($4);
+                                                                        for (int i = 0; i < STRSIZE; i++)
+                                                                        {
+                                                                            if (constant[i] != NULL)
+                                                                            {
+                                                                                constant[i][0] = '\0';
+                                                                                strncpy(constant[i], $2, strlen($2));
+                                                                                break;
+                                                                            }
+                                                                        }
+
+                                                                        Write(" ldc "); Write($4); Write("\n");
+
+                                                                        bufIndex++;
+                                                                    }
+                                                                    else Trace("line %d: Redeclaration of identifier.\n", linenum);
+                                                                    }   
                         | LET ID COLON INT ASSIGN integer_exp SEMICOLON     {
                                                                             list_t* t = lookup($2);
 
@@ -222,6 +259,67 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                                         break;
                                                                                     }
                                                                                 }
+
+                                                                                Write(" sipush "); Write($6); Write("\n");
+
+                                                                                bufIndex++;
+                                                                            }
+                                                                            else Trace("line %d: Redeclaration of identifier.\n", linenum);
+                                                                            }
+                        | LET ID COLON BOOL ASSIGN bool_exp SEMICOLON       {
+                                                                            list_t* t = lookup($2);
+
+                                                                            if (t == NULL)
+                                                                            {
+                                                                                insert($2, strlen($2), CONST_INT_TYPE, linenum);
+                                                                                t = lookup($2);
+                                                                                t->st_ival = stoi($6);
+                                                                                t->st_sval = strdup($6);
+                                                                                for (int i = 0; i < STRSIZE; i++)
+                                                                                {
+                                                                                    if (constant[i] != NULL)
+                                                                                    {
+                                                                                        constant[i][0] = '\0';
+                                                                                        strncpy(constant[i], $2, strlen($2));
+                                                                                        break;
+                                                                                    }
+                                                                                }
+                                                                                if (strcmp($6, "true") == 0)
+                                                                                {
+                                                                                    Write("  iconst_1\n");
+                                                                                }
+                                                                                else if (strcmp($6, "false") == 0)
+                                                                                {
+                                                                                    Write("  iconst_0\n");
+                                                                                }
+                                                                                else
+                                                                                    Write(" sipush "); Write($6); Write("\n");
+
+                                                                                bufIndex++;
+                                                                            }
+                                                                            else Trace("line %d: Redeclaration of identifier.\n", linenum);
+                                                                            }
+                        | LET ID COLON STR ASSIGN string_exp SEMICOLON      {
+                                                                            list_t* t = lookup($2);
+
+                                                                            if (t == NULL)
+                                                                            {
+                                                                                insert($2, strlen($2), CONST_STR_TYPE, linenum);
+                                                                                t = lookup($2);
+                                                                                t->st_sval = strdup($6);
+                                                                                for (int i = 0; i < STRSIZE; i++)
+                                                                                {
+                                                                                    if (constant[i] != NULL)
+                                                                                    {
+                                                                                        constant[i][0] = '\0';
+                                                                                        strncpy(constant[i], $2, strlen($2));
+                                                                                        break;
+                                                                                    }
+                                                                                }
+                                                                               
+                                                                                Write(" ldc "); Write($6); Write("\n");
+
+                                                                                bufIndex++;
                                                                             }
                                                                             else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                             }
@@ -747,28 +845,43 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE block    {
                                                                 }
                 ;
 
-while_end:      R_B {
-                        
-                    }
-                ;
-while_start:    L_B {
-                        
-                    }
-                ;
+loop:           WHILE L_BRACE bool_exp R_BRACE block    {
+                                                        char str[MAX_LINE_SIZE];
+                                                        str[0] = '\0';
+                                                        char l[STRSIZE];
 
-while_block:    while_start local_declaration statements while_end               
-                | while_start local_declaration while_end                         
-                | while_start statements while_end                                
-                | while_start while_end                                           
-                ;
-
-loop:           WHILE L_BRACE bool_exp R_BRACE while_block  {
-                                                            char l[STRSIZE];
-                                                            Write("L"); Write(itos(L, l)); Write(":\n");
-                                                            L += 1;
-
-                                                            bufIndex++;
+                                                        // judge I should pop back how many blocks
+                                                        int i, j;
+                                                        for (i = bufIndex - 1; i >= 0; i--)
+                                                        {
+                                                            if (bufferMark[i] == BOOLEXP)
+                                                            {
+                                                                break;
                                                             }
+                                                        }
+
+                                                        int Lbegin = L + 1;
+                                                        int Ltrue = L;
+                                                        int Lfalse = L + 2;
+                                                        int Lexit = L + 3;
+                                                        strcat(str, "L"); strcat(str, itos(Lbegin, l)); strcat(str, ":\n");
+                                                        strcat(str, buffer[i]);
+                                                        strcat(str, "  goto L"); strcat(str, itos(Lfalse, l)); strcat(str, "\n");
+                                                        strcat(str, "L"); strcat(str, itos(Ltrue, l)); strcat(str, ":\n");
+                                                        strcat(str, "  iconst_1\n");
+                                                        strcat(str, "L"); strcat(str, itos(Lfalse, l)); strcat(str, ":\n");
+                                                        strcat(str, "  ifeq L"); strcat(str, itos(Lexit, l)); strcat(str, "\n");
+                                                        for (j = i + 1; j < bufIndex; j++)
+                                                            strcat(str, buffer[j]);
+                                                        strcat(str, "  goto L"); strcat(str, itos(Lbegin, l)); strcat(str, "\n");
+                                                        strcat(str, "L"); strcat(str, itos(Lexit, l)); strcat(str, ":\n");
+
+                                                        L += 4;
+
+                                                        for (j = i; j < bufIndex; j++) buffer[j][0] = '\0';
+                                                        bufIndex -= i;
+                                                        Write(str);
+                                                        }
                 ;
 
 bool_exp:       integer_exp                             {
@@ -1096,7 +1209,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         }
 
                                                         // put mark for buffer
-                                                        Num(NORMAL);
+                                                        Num(BOOLEXP);
 
                                                         bufIndex++;
                                                         }
@@ -1125,7 +1238,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(BOOLEXP);
 
                                                 bufIndex++;
                                                 }
@@ -1154,7 +1267,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(BOOLEXP);
 
                                                 bufIndex++;
                                                 }
@@ -1183,7 +1296,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(BOOLEXP);
 
                                                 bufIndex++;
                                                 }
@@ -1212,7 +1325,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                     }
 
                                                     // put mark for buffer
-                                                    Num(NORMAL);
+                                                    Num(BOOLEXP);
 
                                                     bufIndex++;
                                                     }
@@ -1241,7 +1354,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(BOOLEXP);
 
                                                 bufIndex++;
                                                 }
@@ -1275,7 +1388,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(BOOLEXP);
 
                                                 bufIndex++;
                                                 }
@@ -1300,7 +1413,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(BOOLEXP);
 
                                                 bufIndex++;
                                                 }   
@@ -1325,7 +1438,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(BOOLEXP);
 
                                                 bufIndex++;
                                                 }

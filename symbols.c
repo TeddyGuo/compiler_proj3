@@ -19,6 +19,8 @@ I found func variable in proj3 is trash since it is very useless.
 
 /* current scope */
 int cur_scope = 0;
+/* current counter for constant pool */
+int counter = 0; // cause we have some local variables, I use this counter to record the number of next one.
 
 void create()
 {
