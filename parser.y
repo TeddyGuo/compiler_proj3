@@ -57,6 +57,7 @@ Try to solve !
 Rewrite else statement, if statement, and while statement
 Use Num(WHILE) Num(IF) Num(ELSE)
 Mark statement as part of them
+if-else statement is the problem.
 */
 %{
 #include "symbols.c"
@@ -92,6 +93,7 @@ Mark statement as part of them
 
 #define NORMAL 0
 #define BOOLEXP 1
+#define ELSEST 2
 
 extern FILE* yyin;
 extern FILE* yyout;
@@ -159,7 +161,7 @@ void judge(list_t*, list_t*, char*, char arg[STRSIZE][STRSIZE], char*, char*); /
 %left UMINUS
 
 /* types */
-%type <stringVal> string_exp integer_exp
+%type <stringVal> string_exp integer_exp else_integer_exp else_string_exp
 %type <stringVal> bool_exp
 %type <parptr> formal_argument formal_arguments comma_separated_exps comma_separated_exp
 %type <symptr> function_invocation
@@ -188,6 +190,11 @@ block:          start local_declaration statements end
                 | start statements end                                
                 | start end                                           
                 ;
+else_block:     start local_declaration else_statements end               
+                | start local_declaration end                         
+                | start else_statements end                                
+                | start end                                           
+                ;
 
 end:            R_B                                                 {
                                                                     incr_scope();
@@ -200,7 +207,25 @@ start:          L_B                                                 {
                                                                     }
                 ;
 
-constant_declaration:   LET ID ASSIGN bool_exp SEMICOLON            {
+constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
+                                                                    list_t* t = lookup($2);
+
+                                                                    if (t == NULL)
+                                                                    {
+                                                                        insert($2, strlen($2), CONST_INT_TYPE, linenum);
+                                                                        t = lookup($2);
+                                                                        t->st_ival = stoi($4);
+                                                                        t->st_sval = strdup($4);
+                                                                        t->constant = 1;
+
+                                                                        Write("  sipush "); Write($4); Write("\n");
+
+                                                                        bufIndex++;
+                                                                    }
+                                                                    else Trace("line %d: Redeclaration of identifier.\n", linenum);
+
+                                                                    }
+                        | LET ID ASSIGN bool_exp SEMICOLON          {
                                                                     list_t* t = lookup($2);
 
                                                                     if (t == NULL)
@@ -363,7 +388,7 @@ glob_variable_declaration:   LET MUT ID SEMICOLON                       {
                                                                                 else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                                 }
                         ;
-local_variable_declaration:   LET MUT ID SEMICOLON                       {
+local_variable_declaration:   LET MUT ID SEMICOLON                      {
                                                                         list_t* t = lookup($3);
 
                                                                         if (t == NULL)
@@ -693,6 +718,9 @@ formal_argument:        ID COLON INT                                    {
 statements:     statements statement
                 | statement
                 ;
+else_statements:    else_statements else_statement
+                    | else_statement
+                    ;
 
 statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                                     list_t* t = lookup($1);
@@ -839,23 +867,163 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                 | conditional
                 | loop
                 ;
+else_statement: ID ASSIGN else_integer_exp SEMICOLON                {
+                                                                    list_t* t = lookup($1);
+                                                                    if (t != NULL && (t->st_type == INT_TYPE || t->st_type == UNDEF))
+                                                                    {
+                                                                        t->st_type = INT_TYPE;
+                                                                        t->st_ival = stoi($3);
+                                                                        t->st_sval = strdup($3);
 
-conditional:    IF L_BRACE bool_exp R_BRACE block ELSE block    {
+                                                                        if (t->glob_flag == 1)
+                                                                        {
+                                                                            Write("  putstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n\n");
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            list_t* temp = lookup($3);
+                                                                            char a[STRSIZE];
+
+                                                                            if (temp != NULL && temp->constant == 0)
+                                                                            {
+                                                                                Write("  iload "); Write(itos(temp->counter, a)); Write("\n");
+                                                                            }
+                                                                            else if (temp != NULL && temp->constant == 1)
+                                                                            {
+                                                                                Write("  sipush "); Write(t->st_sval); Write("\n");
+                                                                            }
+                                                                            if (temp != NULL && temp->neg == 1)
+                                                                            {
+                                                                                temp->neg = 0;
+                                                                                Write("  ineg\n");
+                                                                            }
+                                                                            
+                                                                            Write("  istore "); Write(itos(t->counter, a)); Write("\n\n");
+                                                                        }
+
+                                                                        // put mark for buffer
+                                                                        Num(ELSEST);
+
+                                                                        bufIndex++;
+                                                                    }
+                                                                    else if (t != NULL && (t->st_type != INT_TYPE || t->st_type != UNDEF))
+                                                                    {
+                                                                        Trace("line %d: The type does not match.\n", linenum);
+                                                                    }
+                                                                    else Trace("line %d: Identifier does not define.\n", linenum);
+                                                                    }
+                | PRINT else_integer_exp SEMICOLON   {
+                                                Write("  getstatic java.io.PrintStream java.lang.System.out\n");
+
+                                                list_t* t = lookup($2);
+                                                if (t != NULL && t->glob_flag == 1)
+                                                {
+                                                    Write("  getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
+                                                }
+                                                else if (t != NULL && t->glob_flag == 0)
+                                                {
+                                                    char a[STRSIZE];
+                                                    Write("  iload "); Write(itos(t->counter, a)); Write("\n");
+                                                }
+                                                else
+                                                {
+                                                    Write("  ldc "); Write($2); Write("\n");
+                                                }
+
+                                                if (t != NULL && t->neg == 1)
+                                                {
+                                                    t->neg = 0;
+                                                    Write("  ineg\n");
+                                                }
+                                                Write("  invokevirtual void java.io.PrintStream.print(int)\n\n");
+                                                
+                                                // put mark for buffer
+                                                Num(ELSEST);
+
+                                                bufIndex++;
+                                                }       
+                | PRINT else_string_exp SEMICOLON    {
+                                                Write("  getstatic java.io.PrintStream java.lang.System.out\n");
+                                                Write("  ldc "); Write($2); Write("\n");
+                                                Write("  invokevirtual void java.io.PrintStream.print(java.lang.String)\n\n");
+
+                                                // put mark for buffer
+                                                Num(ELSEST);
+                                                
+                                                bufIndex++;
+                                                }
+                | PRINTLN else_integer_exp SEMICOLON {
+                                                Write("  getstatic java.io.PrintStream java.lang.System.out\n");
+
+                                                list_t* t = lookup($2);
+                                                if (t != NULL && t->glob_flag == 1)
+                                                {
+                                                    Write("  getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
+                                                }
+                                                else if (t != NULL && t->glob_flag == 0)
+                                                {
+                                                    char a[STRSIZE];
+                                                    Write("  iload "); Write(itos(t->counter, a)); Write("\n");
+                                                }
+                                                else 
+                                                {
+                                                    Write("  ldc "); Write($2); Write("\n");
+                                                }
+
+                                                if (t != NULL && t->neg == 1)
+                                                {
+                                                    t->neg = 0;
+                                                    Write("  ineg\n");
+                                                }
+
+                                                Write("  invokevirtual void java.io.PrintStream.println(int)\n\n");
+
+                                                // put mark for buffer
+                                                Num(ELSEST);
+                                                
+                                                bufIndex++;
+                                                }
+                | PRINTLN else_string_exp SEMICOLON  {
+                                                Write("  getstatic java.io.PrintStream java.lang.System.out\n");
+                                                Write("  ldc "); Write($2); Write("\n");
+                                                Write("  invokevirtual void java.io.PrintStream.println(java.lang.String)\n\n");
+
+                                                // put mark for buffer
+                                                Num(ELSEST);
+                                                
+                                                bufIndex++;
+                                                }
+                ;
+
+conditional:    IF L_BRACE bool_exp R_BRACE block ELSE else_block    {
                                                                 char str[MAX_LINE_SIZE];
                                                                 char l[STRSIZE];
                                                                 str[0] = '\0';
 
+                                                                // judge I should pop back how many blocks
+                                                                int i, j, k;
+                                                                for (i = bufIndex - 1; i >= 0; i--)
+                                                                {
+                                                                    if (bufferMark[i] == ELSEST)
+                                                                    {
+                                                                        j = i;
+                                                                    }
+                                                                    if (bufferMark[i] == BOOLEXP)
+                                                                    {
+                                                                        break;
+                                                                    }
+                                                                }
+
                                                                 if (strcmp($3, "true") == 0 || strcmp($3, "false") == 0)
                                                                 {
-                                                                    strcat(str, buffer[bufIndex - 3]);
-                                                                    strcat(str, buffer[bufIndex - 2]);
+                                                                    for (k = i; k < j; k++) strcat(str, buffer[k]);
                                                                     strcat(str, "  goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
                                                                     strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
-                                                                    strcat(str, buffer[bufIndex - 1]);
+                                                                    for (k = j; k < bufIndex; k++) strcat(str, buffer[k]);
                                                                     strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                 }
                                                                 else {
-                                                                    strcat(str, buffer[bufIndex - 3]);
+                                                                    strcat(str, buffer[i]);
                                                                     strcat(str, "  goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
                                                                     strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                     strcat(str, "  iconst_1\n");
@@ -863,19 +1031,18 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE block    {
                                                                     strcat(str, "  ifeq L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
                                                                     L++;
 
-                                                                    strcat(str, buffer[bufIndex - 2]);
+                                                                    for (k = i + 1; k < j; k++) strcat(str, buffer[k]);
                                                                     strcat(str, "  goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
 
                                                                     strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
 
-                                                                    strcat(str, buffer[bufIndex - 1]);
+                                                                    for (k = j; k < bufIndex; k++) strcat(str, buffer[k]);
                                                                     strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                 }
 
-                                                                buffer[bufIndex - 3][0] = '\0';
-                                                                buffer[bufIndex - 2][0] = '\0';
-                                                                buffer[bufIndex - 1][0] = '\0';
-                                                                bufIndex -= 3;
+                                                                for (k = i; k < bufIndex; k++) buffer[k][0] = '\0';
+
+                                                                bufIndex -= i;
                                                                 Write(str);
                                                                 }
                 | IF L_BRACE bool_exp R_BRACE block             {
@@ -955,25 +1122,200 @@ loop:           WHILE L_BRACE bool_exp R_BRACE block    {
                                                         }
                 ;
 
-bool_exp:       integer_exp                             {
-                                                            $$ = strdup($1);
-                                                        }
-                | TRUE                                  {
-                                                            char l[STRSIZE];
-                                                            Write("  iconst_1\n");
-                                                            Write("  ifeq L"); Write(itos(L, l)); Write("\n");
-                                                            $$ = strdup($1);
+bool_exp:       integer_exp LESS integer_exp    {
+                                                list_t* t1 = lookup($1);
+                                                list_t* t2 = lookup($3);
+                                                
+                                                judge(t1, t2, file, arg, $1, $3);
 
-                                                            bufIndex++;
-                                                        }
-                | FALSE                                 {
-                                                            char l[STRSIZE];
-                                                            Write("  iconst_0\n");
-                                                            Write("  ifeq L"); Write(itos(L, l)); Write("\n");
-                                                            $$ = strdup($1);
+                                                Write("  isub\n");
+                                                char l[STRSIZE];
+                                                Write("  iflt L"); Write(itos(L, l)); Write("\n");
+                                                Write("  iconst_0\n");
+                                                
+                                                                                
+                                                // return part
+                                                int i, j;
+                                                i = stoi($1); j = stoi($3);
+                                                if (i < j)
+                                                {
+                                                    $$ = strdup("1");
+                                                }
+                                                else
+                                                {
+                                                    $$ = strdup("0");                                                        
+                                                }
 
-                                                            bufIndex++;
-                                                        }
+                                                // put mark for buffer
+                                                Num(BOOLEXP);
+
+                                                bufIndex++;
+                                                }
+                | integer_exp LE integer_exp    {
+                                                list_t* t1 = lookup($1);
+                                                list_t* t2 = lookup($3);
+                                                
+                                                judge(t1, t2, file, arg, $1, $3);
+
+                                                Write("  isub\n");
+                                                char l[STRSIZE];
+                                                Write("  ifle L"); Write(itos(L, l)); Write("\n");
+                                                Write("  iconst_0\n");
+
+
+                                                // return part
+                                                int i, j;
+                                                i = stoi($1); j = stoi($3);
+                                                if (i <= j)
+                                                {
+                                                    $$ = strdup("1");
+                                                }
+                                                else
+                                                {
+                                                    $$ = strdup("0");                                                        
+                                                }
+
+                                                // put mark for buffer
+                                                Num(BOOLEXP);
+
+                                                bufIndex++;
+                                                }
+                | integer_exp E integer_exp     {
+                                                list_t* t1 = lookup($1);
+                                                list_t* t2 = lookup($3);
+                                                
+                                                judge(t1, t2, file, arg, $1, $3);
+
+                                                Write("  isub\n");
+                                                char l[STRSIZE];
+                                                Write("  ifeq L"); Write(itos(L, l)); Write("\n");
+                                                Write("  iconst_0\n");
+                                                
+
+                                                // return part
+                                                int i, j;
+                                                i = stoi($1); j = stoi($3);
+                                                if (i == j)
+                                                {
+                                                    $$ = strdup("1");
+                                                }
+                                                else
+                                                {
+                                                    $$ = strdup("0");                                                        
+                                                }
+
+                                                // put mark for buffer
+                                                Num(BOOLEXP);
+
+                                                bufIndex++;
+                                                }
+                | integer_exp GE integer_exp    {
+                                                list_t* t1 = lookup($1);
+                                                list_t* t2 = lookup($3);
+                                                
+                                                judge(t1, t2, file, arg, $1, $3);
+
+                                                Write("  isub\n");
+                                                char l[STRSIZE];
+                                                Write("  ifge L"); Write(itos(L, l)); Write("\n");
+                                                Write("  iconst_0\n");
+                                                
+
+                                                // return part
+                                                int i, j;
+                                                i = stoi($1); j = stoi($3);
+                                                if (i >= j)
+                                                {
+                                                    $$ = strdup("1");
+                                                }
+                                                else
+                                                {
+                                                    $$ = strdup("0");                                                        
+                                                }
+
+                                                // put mark for buffer
+                                                Num(BOOLEXP);
+
+                                                bufIndex++;
+                                                }
+                | integer_exp GREATER integer_exp   {
+                                                    list_t* t1 = lookup($1);
+                                                    list_t* t2 = lookup($3);
+                                                    
+                                                    judge(t1, t2, file, arg, $1, $3);
+
+                                                    Write("  isub\n");
+                                                    char l[STRSIZE];
+                                                    Write("  ifgt L"); Write(itos(L, l)); Write("\n");
+                                                    Write("  iconst_0\n");
+                                                    
+
+                                                    // return part
+                                                    int i, j;
+                                                    i = stoi($1); j = stoi($3);
+                                                    if (i > j)
+                                                    {
+                                                        $$ = strdup("1");
+                                                    }
+                                                    else
+                                                    {
+                                                        $$ = strdup("0");                                                        
+                                                    }
+
+                                                    // put mark for buffer
+                                                    Num(BOOLEXP);
+
+                                                    bufIndex++;
+                                                    }
+                | integer_exp NE integer_exp    {
+                                                list_t* t1 = lookup($1);
+                                                list_t* t2 = lookup($3);
+                                                
+                                                judge(t1, t2, file, arg, $1, $3);
+                                                
+                                                Write("  isub\n");
+                                                char l[STRSIZE];
+                                                Write("  ifne L"); Write(itos(L, l)); Write("\n");
+                                                Write("  iconst_0\n");
+                                                
+
+                                                // return part
+                                                int i, j;
+                                                i = stoi($1); j = stoi($3);
+                                                if (i != j)
+                                                {
+                                                    $$ = strdup("1");
+                                                }
+                                                else
+                                                {
+                                                    $$ = strdup("0");                                                        
+                                                }
+
+                                                // put mark for buffer
+                                                Num(BOOLEXP);
+
+                                                bufIndex++;
+                                                }
+                | TRUE                          {
+                                                char l[STRSIZE];
+                                                Write("  iconst_1\n");
+                                                Write("  ifeq L"); Write(itos(L, l)); Write("\n");
+                                                $$ = strdup($1);
+
+                                                Num(BOOLEXP);
+
+                                                bufIndex++;
+                                                }
+                | FALSE                         {
+                                                char l[STRSIZE];
+                                                Write("  iconst_0\n");
+                                                Write("  ifeq L"); Write(itos(L, l)); Write("\n");
+                                                $$ = strdup($1);
+
+                                                Num(BOOLEXP);
+
+                                                bufIndex++;
+                                                }
                 ;
 
 comma_separated_exps:   comma_separated_exp             {
@@ -1255,180 +1597,6 @@ integer_exp:    integer_exp ADD integer_exp             {
                 | L_BRACE integer_exp R_BRACE           {
                                                         $$ = strdup($2);
                                                         }
-                | integer_exp LESS integer_exp          {
-                                                        list_t* t1 = lookup($1);
-                                                        list_t* t2 = lookup($3);
-                                                        
-                                                        judge(t1, t2, file, arg, $1, $3);
-
-                                                        Write("  isub\n");
-                                                        char l[STRSIZE];
-                                                        Write("  iflt L"); Write(itos(L, l)); Write("\n");
-                                                        Write("  iconst_0\n");
-                                                        
-                                                                                       
-                                                        // return part
-                                                        int i, j;
-                                                        i = stoi($1); j = stoi($3);
-                                                        if (i < j)
-                                                        {
-                                                            $$ = strdup("1");
-                                                        }
-                                                        else
-                                                        {
-                                                            $$ = strdup("0");                                                        
-                                                        }
-
-                                                        // put mark for buffer
-                                                        Num(BOOLEXP);
-
-                                                        bufIndex++;
-                                                        }
-                | integer_exp LE integer_exp    {
-                                                list_t* t1 = lookup($1);
-                                                list_t* t2 = lookup($3);
-                                                
-                                                judge(t1, t2, file, arg, $1, $3);
-
-                                                Write("  isub\n");
-                                                char l[STRSIZE];
-                                                Write("  ifle L"); Write(itos(L, l)); Write("\n");
-                                                Write("  iconst_0\n");
-
-
-                                                // return part
-                                                int i, j;
-                                                i = stoi($1); j = stoi($3);
-                                                if (i <= j)
-                                                {
-                                                    $$ = strdup("1");
-                                                }
-                                                else
-                                                {
-                                                    $$ = strdup("0");                                                        
-                                                }
-
-                                                // put mark for buffer
-                                                Num(BOOLEXP);
-
-                                                bufIndex++;
-                                                }
-                | integer_exp E integer_exp     {
-                                                list_t* t1 = lookup($1);
-                                                list_t* t2 = lookup($3);
-                                                
-                                                judge(t1, t2, file, arg, $1, $3);
-
-                                                Write("  isub\n");
-                                                char l[STRSIZE];
-                                                Write("  ifeq L"); Write(itos(L, l)); Write("\n");
-                                                Write("  iconst_0\n");
-                                                
-
-                                                // return part
-                                                int i, j;
-                                                i = stoi($1); j = stoi($3);
-                                                if (i == j)
-                                                {
-                                                    $$ = strdup("1");
-                                                }
-                                                else
-                                                {
-                                                    $$ = strdup("0");                                                        
-                                                }
-
-                                                // put mark for buffer
-                                                Num(BOOLEXP);
-
-                                                bufIndex++;
-                                                }
-                | integer_exp GE integer_exp    {
-                                                list_t* t1 = lookup($1);
-                                                list_t* t2 = lookup($3);
-                                                
-                                                judge(t1, t2, file, arg, $1, $3);
-
-                                                Write("  isub\n");
-                                                char l[STRSIZE];
-                                                Write("  ifge L"); Write(itos(L, l)); Write("\n");
-                                                Write("  iconst_0\n");
-                                                
-
-                                                // return part
-                                                int i, j;
-                                                i = stoi($1); j = stoi($3);
-                                                if (i >= j)
-                                                {
-                                                    $$ = strdup("1");
-                                                }
-                                                else
-                                                {
-                                                    $$ = strdup("0");                                                        
-                                                }
-
-                                                // put mark for buffer
-                                                Num(BOOLEXP);
-
-                                                bufIndex++;
-                                                }
-                | integer_exp GREATER integer_exp   {
-                                                    list_t* t1 = lookup($1);
-                                                    list_t* t2 = lookup($3);
-                                                    
-                                                    judge(t1, t2, file, arg, $1, $3);
-
-                                                    Write("  isub\n");
-                                                    char l[STRSIZE];
-                                                    Write("  ifgt L"); Write(itos(L, l)); Write("\n");
-                                                    Write("  iconst_0\n");
-                                                    
-
-                                                    // return part
-                                                    int i, j;
-                                                    i = stoi($1); j = stoi($3);
-                                                    if (i > j)
-                                                    {
-                                                        $$ = strdup("1");
-                                                    }
-                                                    else
-                                                    {
-                                                        $$ = strdup("0");                                                        
-                                                    }
-
-                                                    // put mark for buffer
-                                                    Num(BOOLEXP);
-
-                                                    bufIndex++;
-                                                    }
-                | integer_exp NE integer_exp    {
-                                                list_t* t1 = lookup($1);
-                                                list_t* t2 = lookup($3);
-                                                
-                                                judge(t1, t2, file, arg, $1, $3);
-                                                
-                                                Write("  isub\n");
-                                                char l[STRSIZE];
-                                                Write("  ifne L"); Write(itos(L, l)); Write("\n");
-                                                Write("  iconst_0\n");
-                                                
-
-                                                // return part
-                                                int i, j;
-                                                i = stoi($1); j = stoi($3);
-                                                if (i != j)
-                                                {
-                                                    $$ = strdup("1");
-                                                }
-                                                else
-                                                {
-                                                    $$ = strdup("0");                                                        
-                                                }
-
-                                                // put mark for buffer
-                                                Num(BOOLEXP);
-
-                                                bufIndex++;
-                                                }
                 | EXCLAMATION integer_exp       {
                                                 list_t* t = lookup($2);
                                                 if (t != NULL && t->glob_flag == 1 && arg[t->counter] == NULL)
@@ -1459,7 +1627,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(BOOLEXP);
+                                                Num(NORMAL);
 
                                                 bufIndex++;
                                                 }
@@ -1484,7 +1652,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(BOOLEXP);
+                                                Num(NORMAL);
 
                                                 bufIndex++;
                                                 }   
@@ -1509,7 +1677,249 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(BOOLEXP);
+                                                Num(NORMAL);
+
+                                                bufIndex++;
+                                                }
+                | INTEGER                       {
+                                                    $$ = strdup($1);
+                                                }
+                | ID                            {
+                                                list_t* t = lookup($1);
+                                                if (t->st_type == INT_TYPE || t->st_type == CONST_INT_TYPE)
+                                                {
+                                                    char b[STRSIZE];
+
+                                                    $$ = strdup(t->st_name);
+
+                                                    
+                                                }
+                                                else
+                                                {
+                                                    Trace("line %d: The type does not match.\n", linenum);
+                                                }
+                                                }
+                | function_invocation           {
+                                                if ($1->st_type == FUNCTION_TYPE && $1->inf_type == INT_TYPE)
+                                                {
+                                                    // throw a random num
+                                                    $$ = strdup("1");
+                                                }
+                                                else
+                                                {
+                                                    Trace("line %d: The type does not match.\n", linenum);
+                                                }
+                                                }
+                ;
+else_integer_exp:   else_integer_exp ADD else_integer_exp             {
+                                                        list_t* t1 = lookup($1);
+                                                        list_t* t2 = lookup($3);
+                                                        
+                                                        judge(t1, t2, file, arg, $1, $3);
+                                                        Write("  iadd\n");
+
+                                                        // return part
+                                                        int i, j, sum;
+                                                        char b[STRSIZE];
+                                                        i = stoi($1); j = stoi($3);
+                                                        sum = i + j;
+                                                        $$ = strdup(itos(sum, b));
+
+                                                        // put mark for buffer
+                                                        Num(ELSEST);
+
+                                                        bufIndex++;
+                                                        }
+                | else_integer_exp MINUS else_integer_exp         {
+                                                        list_t* t1 = lookup($1);
+                                                        list_t* t2 = lookup($3);
+                                                        
+                                                        judge(t1, t2, file, arg, $1, $3);
+
+                                                        Write("  isub\n");
+
+                                                        // return part
+                                                        int i, j, sum;
+                                                        char b[STRSIZE];
+                                                        i = stoi($1); j = stoi($3);
+                                                        sum = i - j;
+                                                        $$ = strdup(itos(sum, b));
+
+                                                        // put mark for buffer
+                                                        Num(ELSEST);
+
+                                                        bufIndex++;
+                                                        }
+                | else_integer_exp TIME else_integer_exp          {
+                                                        list_t* t1 = lookup($1);
+                                                        list_t* t2 = lookup($3);
+                                                        
+                                                        judge(t1, t2, file, arg, $1, $3);
+
+                                                        Write("  imul\n");
+
+                                                        // return part
+                                                        int i, j, sum;
+                                                        char b[STRSIZE];
+                                                        i = stoi($1); j = stoi($3);
+                                                        sum = i * j;
+                                                        $$ = strdup(itos(sum, b));
+
+                                                        // put mark for buffer
+                                                        Num(ELSEST);
+
+                                                        bufIndex++;
+                                                        }
+                | else_integer_exp DIVIDE else_integer_exp        {
+                                                        list_t* t1 = lookup($1);
+                                                        list_t* t2 = lookup($3);
+                                                        
+                                                        judge(t1, t2, file, arg, $1, $3);
+
+                                                        Write("  idiv\n");
+
+                                                        // return part
+                                                        int i, j, sum;
+                                                        char b[STRSIZE];
+                                                        i = stoi($1); j = stoi($3);
+                                                        if (j == 0) yyerror("line %d: Divided by zero.");
+                                                        else
+                                                        {
+                                                            sum = i / j;
+                                                            $$ = strdup(itos(sum, b));
+                                                        }
+
+                                                        // put mark for buffer
+                                                        Num(ELSEST);
+
+                                                        bufIndex++;
+                                                        }
+                | else_integer_exp MODULUS else_integer_exp       {
+                                                        list_t* t1 = lookup($1);
+                                                        list_t* t2 = lookup($3);
+                                                        
+                                                        judge(t1, t2, file, arg, $1, $3);
+
+                                                        Write("  irem\n");
+
+                                                        // return part
+                                                        int i, j, sum;
+                                                        char b[STRSIZE];
+                                                        i = stoi($1); j = stoi($3);
+                                                        sum = i % j;
+                                                        $$ = itos(sum, b);
+
+                                                        // put mark for buffer
+                                                        Num(ELSEST);
+
+                                                        bufIndex++;
+                                                        }
+                | MINUS else_integer_exp %prec UMINUS        {
+                                                        list_t* t = lookup($2);
+                                                        
+                                                        // return part
+                                                        if (t != NULL && t->neg == 0)
+                                                        {
+                                                            t->neg = 1;
+                                                            $$ = strdup($2);
+                                                        }
+                                                        else if (t != NULL && t->neg == 1)
+                                                        {
+                                                            t->neg = 0;
+                                                            $$ = strdup($2);
+                                                        }
+                                                        else
+                                                        {
+                                                            int i = stoi($2);
+                                                            i = -i;
+                                                            char a[STRSIZE];
+                                                            $$ = strdup(itos(i, a));
+                                                        }
+                                                        }
+                | L_BRACE else_integer_exp R_BRACE           {
+                                                        $$ = strdup($2);
+                                                        }
+                | EXCLAMATION else_integer_exp       {
+                                                list_t* t = lookup($2);
+                                                if (t != NULL && t->glob_flag == 1 && arg[t->counter] == NULL)
+                                                {
+                                                    Write("  getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
+                                                }
+                                                else if (t != NULL && t->glob_flag == 0)
+                                                {
+                                                    char a[STRSIZE];
+                                                    Write("  iload "); Write(itos(t->counter, a)); Write("\n");
+                                                }
+                                                else
+                                                {
+                                                    Write("  sipush "); Write($2); Write("\n");
+                                                }
+                                                Write("  ixor\n");
+
+                                                // return part
+                                                int i;
+                                                i = stoi($2);
+                                                if (!i)
+                                                {
+                                                    $$ = strdup("1");
+                                                }
+                                                else
+                                                {
+                                                    $$ = strdup("0");                                                        
+                                                }
+
+                                                // put mark for buffer
+                                                Num(ELSEST);
+
+                                                bufIndex++;
+                                                }
+                | else_integer_exp AND else_integer_exp   {
+                                                list_t* t1 = lookup($1);
+                                                list_t* t2 = lookup($3);
+                                                
+                                                judge(t1, t2, file, arg, $1, $3);
+
+                                                Write("  iand\n");
+
+                                                // return part
+                                                int i, j;
+                                                i = stoi($1); j = stoi($3);
+                                                if (i && j)
+                                                {
+                                                    $$ = strdup("1");
+                                                }
+                                                else
+                                                {
+                                                    $$ = strdup("0");                                                        
+                                                }
+
+                                                // put mark for buffer
+                                                Num(ELSEST);
+
+                                                bufIndex++;
+                                                }   
+                | else_integer_exp OR else_integer_exp    {
+                                                list_t* t1 = lookup($1);
+                                                list_t* t2 = lookup($3);
+                                                
+                                                judge(t1, t2, file, arg, $1, $3);
+
+                                                Write("  ior\n");
+
+                                                // return part
+                                                int i, j;
+                                                i = stoi($1); j = stoi($3);
+                                                if (i || j)
+                                                {
+                                                    $$ = strdup("1");
+                                                }
+                                                else
+                                                {
+                                                    $$ = strdup("0");                                                        
+                                                }
+
+                                                // put mark for buffer
+                                                Num(ELSEST);
 
                                                 bufIndex++;
                                                 }
@@ -1551,6 +1961,13 @@ string_exp:     L_BRACE string_exp R_BRACE      {
                                                     $$ = strdup($1);
                                                 }
                 ;
+else_string_exp:    L_BRACE else_string_exp R_BRACE {
+                                                        $$ = strdup($2);
+                                                    }
+                    | STRING                        {
+                                                        $$ = strdup($1);
+                                                    }
+                    ;
 %%
 #include "lex.c"
 

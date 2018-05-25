@@ -38,12 +38,12 @@ local.out 是編譯完rust檔案之後，裡面會紀錄local variables的數目
 dump.out 之前就有，裡面存所有的ID，相對的類型與出現的行數，雖然行數現在會因為
 我插入方法的改變而錯誤，不過還是可以確認有什麼ID
 
-專案目前如果遇到if-else statement，if 或 else 裡如果超過一行就會錯誤
+現行專案if-else statement 經過我多方嘗試產生代碼成功
 
-存粹 if statement 倒是沒問題，我自己有多放一個ifstmt.rust 測試這件事
+存粹 if statement 也沒問題，我自己有多放一個ifstmt.rust 測試這件事
 
 while statement 也是執行正確
 
-以上感謝您的閱讀，祝您暑假愉快，讓我All pass
+以上感謝您的閱讀，祝您暑假愉快，請讓我All pass
 
  > < b 謝謝
