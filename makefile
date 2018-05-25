@@ -12,5 +12,6 @@ parser: lex.yy.c parser.tab.c parser.tab.h
 	gcc -o parser parser.c
 
 clean:
-	rm -rf parser parser.c lex.c parser.tab.h dump.out
+	rm -rf parser parser.c lex.c parser.tab.h
+	rm -rf *.out
 	rm -rf *.jasm

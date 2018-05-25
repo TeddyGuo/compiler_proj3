@@ -1,0 +1,5 @@
+entering block, next number 0
+n = 0, next number 1
+Fn = 1, next number 2
+FNminus1 = 2, next number 3
+temp = 3, next number 4

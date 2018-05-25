@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdio.h>
+#include <string.h>
 /* maximum size of hash table */
 #ifndef SIZE
 #define SIZE 211
@@ -105,12 +106,18 @@ typedef struct list{
 	short constant; // judge whether it is a constant or not
 }list_t;
 
+typedef struct local_variable{
+	char* name;
+	int counter;
+}local_t;
+
 /* the hash table */
 static list_t **hash_table;
 
 // Function Declarations
 void create(); // initialize hash table
 unsigned int hash(char *key); // hash function for insert
+void put_local(char* name, int count); // put local variable name and counter into the local_var table
 void insert(char *name, int len, int type, int lineno); // insert entry plus func
 list_t *lookup(char *name); // search for entry
 list_t *lookup_scope(char *name, int scope); // search for entry in scope
@@ -118,5 +125,5 @@ void hide_scope(); // hide the current scope
 void incr_scope(); // go to next scope
 void dump(FILE *of); // dump file
 
-int             stoi(char *str);
-char*           itos(int i, char b[]);
+int    stoi(char *str);
+char*  itos(int i, char b[]);

@@ -56,12 +56,16 @@ Make true and false return stringVal
 #define tokenString(t, s) {LIST; printf("<%s: %s>\n", t, s);}
 
 #define MAX_LINE_LENG 256
+#define STRSIZE        40
 
 extern int cur_scope;
 extern FILE* yyin;
 extern FILE* yyout;
+extern FILE* javaa;
 int linenum = 1;
 char buf[MAX_LINE_LENG];
+char code[MAX_LINE_LENG][MAX_LINE_LENG];
+int codeCounter = 0;
 char* tempStr;
 int indexForStr = 1;
 list_t* temp;
@@ -182,6 +186,11 @@ list_t* temp;
                                         }
 
 \n      {
+        char line[STRSIZE];
+
+        // store code for writing into javaa file
+        strcat(code[codeCounter], "/* "); strcat(code[codeCounter], itos(linenum, line)); strcat(code[codeCounter], ": "); strcat(code[codeCounter], buf); strcat(code[codeCounter++], " */\n");
+
         LIST;
         printf("%d: %s", linenum++, buf);
         buf[0] = '\0';

@@ -26,7 +26,11 @@ void create()
 {
 	int i; 
 	hash_table = malloc(SIZE * sizeof(list_t*));
-	for(i = 0; i < SIZE; i++) hash_table[i] = NULL;
+
+	for(i = 0; i < SIZE; i++) 
+	{
+		hash_table[i] = NULL;
+	}
 }
 
 unsigned int hash(char *key)
@@ -119,7 +123,7 @@ void dump(FILE * of)
 			else if (l->st_type == REAL_TYPE) fprintf(of,"%-7s","real");
 			else if (l->st_type == STR_TYPE) fprintf(of,"%-7s","string");
 			else if (l->st_type == LOGIC_TYPE)	fprintf(of,"%-7s","bool");
-			else if (l->st_type == CONST_INT_TYPE) fprintf(of, "%-7s", "const_int"); // constant_int_type
+			else if (l->st_type == CONST_INT_TYPE) fprintf(of, "%-3s", "const_int"); // constant_int_type
 			else if (l->st_type == CONST_REAL_TYPE) fprintf(of, "%-7s", "const_real"); // constant_real_type
 			else if (l->st_type == CONST_STR_TYPE) fprintf(of, "%-7s", "const_string"); // constant_string_type
 			else if (l->st_type == CONST_LOGIC_TYPE) fprintf(of, "%-7s", "const_bool"); // const_logic_type
@@ -129,7 +133,7 @@ void dump(FILE * of)
 				else if (l->inf_type  == REAL_TYPE)    fprintf(of,"%-7s","real");
 				else if (l->inf_type  == STR_TYPE) 	   fprintf(of,"%-7s","string");
 				else if (l->inf_type == LOGIC_TYPE)	   fprintf(of,"%-7s","bool");
-				else fprintf(of,"%-7s","undef");
+				else fprintf(of,"%-7s","void");
 			}
 			else if (l->st_type == FUNCTION_TYPE){
 				fprintf(of,"%-7s","function returns ");
@@ -137,7 +141,7 @@ void dump(FILE * of)
 				else if (l->inf_type  == REAL_TYPE)    fprintf(of,"%-7s","real");
 				else if (l->inf_type  == STR_TYPE) 	   fprintf(of,"%-7s","string");
 				else if (l->inf_type == LOGIC_TYPE)	   fprintf(of,"-7%s","bool");
-				else fprintf(of,"%-7s","undef");
+				else fprintf(of,"%-7s","void");
 			}
 			else fprintf(of,"%-7s","undef"); // if UNDEF or 0
 

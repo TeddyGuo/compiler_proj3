@@ -51,6 +51,12 @@ Try to ifstmt and whilestmt
 Try while_loop
 Now, I have to deal with local and global variables problem since it cannot define well.
 Try to generate fib.jasm correctly. Now, the problem is when something equals something, it cannot write correclty since ID part does not write something in.
+
+May 25, 2018
+Try to solve !
+Rewrite else statement, if statement, and while statement
+Use Num(WHILE) Num(IF) Num(ELSE)
+Mark statement as part of them
 */
 %{
 #include "symbols.c"
@@ -80,6 +86,10 @@ Try to generate fib.jasm correctly. Now, the problem is when something equals so
 #define MAX_LINE_SIZE 1024
 #endif
 
+#ifndef MAX_LINE_CODE
+#define MAX_LINE_CODE 256
+#endif
+
 #define NORMAL 0
 #define BOOLEXP 1
 
@@ -87,7 +97,11 @@ extern FILE* yyin;
 extern FILE* yyout;
 extern int linenum;
 extern int yylex();
+extern char buf[256];
+extern char code[MAX_LINE_CODE][MAX_LINE_CODE];
+extern int codeCounter;
 FILE* javaa;        //file for bytecode
+FILE* local_tab;    // local_var output file
 char* file;         // filename without extension
 
 char arg[STRSIZE][STRSIZE]; // record the names of arguments in the current function
@@ -97,6 +111,9 @@ int bufIndex = 0;
 int bufferMark[STRSIZE]; // remark what kind of handle about the match buffer blocks.
 
 int L = 0; // stage counter
+
+char local_var[STRSIZE][STRSIZE]; // record the local variables
+int local_counter[STRSIZE]; // record the local values
 
 void yyerror(char* msg);
 void judge(list_t*, list_t*, char*, char arg[STRSIZE][STRSIZE], char*, char*); // judge should Write what king of sentences into file
@@ -208,6 +225,7 @@ constant_declaration:   LET ID ASSIGN bool_exp SEMICOLON            {
                                                                         bufIndex++;
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
+
                                                                     }
                         | LET ID ASSIGN string_exp SEMICOLON        {
                                                                     list_t* t = lookup($2);
@@ -357,6 +375,14 @@ local_variable_declaration:   LET MUT ID SEMICOLON                       {
                                                                             t->st_ival = stoi("0");
                                                                             t->st_sval = strdup("0");
                                                                             t->constant = 0;
+
+                                                                            strcat(local_var[counter], $3);
+                                                                            local_counter[counter] = counter;
+                                                                            
+                                                                            char l[STRSIZE];
+                                                                            fprintf(local_tab, "%s", $3); fprintf(local_tab, " = "); fprintf(local_tab, "%s", itos(counter, l)); fprintf(local_tab, ", next number " ); fprintf(local_tab, "%s", itos(counter+1, l));
+                                                                            fprintf(local_tab, "\n");
+
                                                                             counter++;
                                                                         }
                                                                         else Trace("line %d: Redeclaration of identifier.\n", linenum);
@@ -375,6 +401,14 @@ local_variable_declaration:   LET MUT ID SEMICOLON                       {
                                                                             t->st_ival = stoi("0");
                                                                             t->st_sval = strdup("0");
                                                                             t->constant = 0;
+
+                                                                            strcat(local_var[counter], $3);
+                                                                            local_counter[counter] = counter;
+
+                                                                            char l[STRSIZE];
+                                                                            fprintf(local_tab, "%s", $3); fprintf(local_tab, " = "); fprintf(local_tab, "%s", itos(counter, l)); fprintf(local_tab, ", next number " ); fprintf(local_tab, "%s", itos(counter+1, l));
+                                                                            fprintf(local_tab, "\n");
+
                                                                             counter++;
                                                                         }
                                                                         else Trace("line %d: Redeclaration of identifier.\n", linenum);
@@ -393,6 +427,13 @@ local_variable_declaration:   LET MUT ID SEMICOLON                       {
                                                                             t->st_ival = stoi($5);
                                                                             t->st_sval = strdup($5);
                                                                             t->constant = 0;
+
+                                                                            strcat(local_var[counter], $3);
+                                                                            local_counter[counter] = counter;
+                                                                            char l[STRSIZE];
+                                                                            fprintf(local_tab, "%s", $3); fprintf(local_tab, " = "); fprintf(local_tab, "%s", itos(counter, l)); fprintf(local_tab, ", next number " ); fprintf(local_tab, "%s", itos(counter+1, l));
+                                                                            fprintf(local_tab, "\n");
+
                                                                             counter++;
                                                                             Write("  sipush "); Write($5); Write("\n");
                                                                             
@@ -419,6 +460,13 @@ local_variable_declaration:   LET MUT ID SEMICOLON                       {
                                                                                     t->st_ival = stoi($7);
                                                                                     t->st_sval = strdup($7);
                                                                                     t->constant = 0;
+
+                                                                                    strcat(local_var[counter], $3);
+                                                                                    local_counter[counter] = counter;
+                                                                                    char l[STRSIZE];
+                                                                                    fprintf(local_tab, "%s", t->st_name); fprintf(local_tab, " = "); fprintf(local_tab, "%s", itos(counter, l)); fprintf(local_tab, ", next number "); fprintf(local_tab, "%s", itos(counter+1, l));
+                                                                                    fprintf(local_tab, "\n");
+
                                                                                     counter++;
                                                                                     Write("  sipush "); Write($7); Write("\n");
 
@@ -667,6 +715,11 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                                             {
                                                                                 Write("  iload "); Write(itos(temp->counter, a)); Write("\n");
                                                                             }
+                                                                            else if (temp != NULL && temp->constant == 1)
+                                                                            {
+                                                                                Write("  sipush "); Write(t->st_sval); Write("\n");
+                                                                            }
+                                                                            
                                                                             Write("  istore "); Write(itos(t->counter, a)); Write("\n\n");
                                                                         }
 
@@ -1506,6 +1559,10 @@ int main(int argc, char** argv)
     /* create the hash table */
     create();
 
+    /* open the local_var.out */
+    local_tab = fopen("local.out", "w");
+    fprintf(local_tab, "entering block, next number 0\n");
+
     /* open the source program file */
     if (argc != 2) {
         printf ("Usage: sc filename\n");
@@ -1524,11 +1581,11 @@ int main(int argc, char** argv)
     char temp[] = ".jasm";
     strcat(filename, temp);
     javaa = fopen(filename, "w");                   /* open a file for java bytecode */
-    List("/*-------------------------------------------------*/\n");
-    List("/*              Java Assembly Code                 */\n");
-    List("/*-------------------------------------------------*/\n\n");
-    List("class "); List(file); List("\n{\n");      /* make the file name as the class name */
-    /*-----------------------------------------------------------------------------------*/
+    List("/*-------------------------------------------------------------------------------*/\n");
+    List("/*                              Java Assembly Code                               */\n");
+    List("/*-------------------------------------------------------------------------------*/\n\n");
+    List("class "); List(file); List(" {\n");      /* make the file name as the class name */
+    /*------------------------------------------------------------------------------------------------------------*/
 
     int flag;
     flag = yyparse();
@@ -1538,7 +1595,14 @@ int main(int argc, char** argv)
         yyerror("Parsing error !");     /* syntax error */
 
     fclose(yyin);                       /* close input file */
-    List("\n}\n");                      /* close the class */
+    List("\n}\n\n");                      /* close the class */
+
+    // write every code line into javaa
+    for (int i = 0; i < codeCounter; i++)
+    {
+        List(code[i]);
+    }
+
     fclose(javaa);                      /* close the javaa */
 
     /* output symbol table */
@@ -1546,6 +1610,7 @@ int main(int argc, char** argv)
     yyout = fopen("dump.out", "w");
     dump(yyout);
     fclose(yyout);
+    fclose(local_tab);
 
     return 0;
 }
