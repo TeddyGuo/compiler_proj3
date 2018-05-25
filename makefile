@@ -1,4 +1,4 @@
-all: parser
+all: gen
 
 parser.tab.c parser.tab.h:	parser.y
 	bison -d parser.y
@@ -6,12 +6,12 @@ parser.tab.c parser.tab.h:	parser.y
 lex.yy.c: scanner.l parser.tab.h
 	flex scanner.l
 
-parser: lex.yy.c parser.tab.c parser.tab.h
+gen: lex.yy.c parser.tab.c parser.tab.h
 	mv lex.yy.c lex.c
 	mv parser.tab.c parser.c
-	gcc -o parser parser.c
+	gcc -o gen parser.c
 
 clean:
-	rm -rf parser parser.c lex.c parser.tab.h
+	rm -rf gen parser.c lex.c parser.tab.h
 	rm -rf *.out
 	rm -rf *.jasm

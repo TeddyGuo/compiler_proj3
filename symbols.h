@@ -106,11 +106,6 @@ typedef struct list{
 	short constant; // judge whether it is a constant or not
 }list_t;
 
-typedef struct local_variable{
-	char* name;
-	int counter;
-}local_t;
-
 /* the hash table */
 static list_t **hash_table;
 

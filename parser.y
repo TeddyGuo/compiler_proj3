@@ -719,6 +719,11 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                                             {
                                                                                 Write("  sipush "); Write(t->st_sval); Write("\n");
                                                                             }
+                                                                            if (temp != NULL && temp->neg == 1)
+                                                                            {
+                                                                                temp->neg = 0;
+                                                                                Write("  ineg\n");
+                                                                            }
                                                                             
                                                                             Write("  istore "); Write(itos(t->counter, a)); Write("\n\n");
                                                                         }
@@ -752,7 +757,7 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                     Write("  ldc "); Write($2); Write("\n");
                                                 }
 
-                                                if (t != NULL && t->glob_flag == 1 && t->neg == 1)
+                                                if (t != NULL && t->neg == 1)
                                                 {
                                                     t->neg = 0;
                                                     Write("  ineg\n");
@@ -792,7 +797,7 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                     Write("  ldc "); Write($2); Write("\n");
                                                 }
 
-                                                if (t != NULL && t->glob_flag == 1 && t->neg == 1)
+                                                if (t != NULL && t->neg == 1)
                                                 {
                                                     t->neg = 0;
                                                     Write("  ineg\n");
@@ -936,7 +941,7 @@ loop:           WHILE L_BRACE bool_exp R_BRACE block    {
                                                         strcat(str, "L"); strcat(str, itos(Ltrue, l)); strcat(str, ":\n");
                                                         strcat(str, "  iconst_1\n");
                                                         strcat(str, "L"); strcat(str, itos(Lfalse, l)); strcat(str, ":\n");
-                                                        strcat(str, "  ifeq L"); strcat(str, itos(Lexit, l)); strcat(str, "\n");
+                                                        strcat(str, "  ifeq L"); strcat(str, itos(Lexit, l)); strcat(str, "\n\n");
                                                         for (j = i + 1; j < bufIndex; j++)
                                                             strcat(str, buffer[j]);
                                                         strcat(str, "  goto L"); strcat(str, itos(Lbegin, l)); strcat(str, "\n");
@@ -1127,7 +1132,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         list_t* t2 = lookup($3);
                                                         
                                                         judge(t1, t2, file, arg, $1, $3);
-                                                        Write("  iadd\n\n");
+                                                        Write("  iadd\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1147,7 +1152,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         
                                                         judge(t1, t2, file, arg, $1, $3);
 
-                                                        Write("  isub\n\n");
+                                                        Write("  isub\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1167,7 +1172,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         
                                                         judge(t1, t2, file, arg, $1, $3);
 
-                                                        Write("  imul\n\n");
+                                                        Write("  imul\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1187,7 +1192,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         
                                                         judge(t1, t2, file, arg, $1, $3);
 
-                                                        Write("  idiv\n\n");
+                                                        Write("  idiv\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1211,7 +1216,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         
                                                         judge(t1, t2, file, arg, $1, $3);
 
-                                                        Write("  irem\n\n");
+                                                        Write("  irem\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1426,11 +1431,11 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 }
                 | EXCLAMATION integer_exp       {
                                                 list_t* t = lookup($2);
-                                                if (t != NULL && t->glob_flag == 1 && t->scope == 0 && arg[t->counter] == NULL)
+                                                if (t != NULL && t->glob_flag == 1 && arg[t->counter] == NULL)
                                                 {
                                                     Write("  getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                 }
-                                                else if (t != NULL)
+                                                else if (t != NULL && t->glob_flag == 0)
                                                 {
                                                     char a[STRSIZE];
                                                     Write("  iload "); Write(itos(t->counter, a)); Write("\n");
@@ -1439,7 +1444,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 {
                                                     Write("  sipush "); Write($2); Write("\n");
                                                 }
-                                                Write("  ixor\n\n");
+                                                Write("  ixor\n");
 
                                                 // return part
                                                 int i;
@@ -1464,7 +1469,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 
                                                 judge(t1, t2, file, arg, $1, $3);
 
-                                                Write("  iand\n\n");
+                                                Write("  iand\n");
 
                                                 // return part
                                                 int i, j;
@@ -1489,7 +1494,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 
                                                 judge(t1, t2, file, arg, $1, $3);
 
-                                                Write("  ior\n\n");
+                                                Write("  ior\n");
 
                                                 // return part
                                                 int i, j;
