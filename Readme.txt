@@ -26,8 +26,8 @@ parser.y 裡將除了integer-type 之外的變數文法都刪掉了
 scanner.l 多了一個char array 存rust檔案裡的內容，然後最後這些會被當作註解寫在
 jasm檔案裡
 
-我原本也想照範例的方式寫進檔案，但因為我產生jasm檔案內容的方式跟範例的想必不同
-我無法將它們放到對應的位置，因此註解都放置在最下面
+May 26, 2018
+更正：我後面發現這樣執行javaa會報syntax error，所以我還是拿掉了
 
 每次編譯完一個程式都會產生一個jasm，一個local.out，一個dump.out
 

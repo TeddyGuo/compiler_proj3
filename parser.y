@@ -218,7 +218,7 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                         t->st_sval = strdup($4);
                                                                         t->constant = 1;
 
-                                                                        Write("  sipush "); Write($4); Write("\n");
+                                                                        Write("    sipush "); Write($4); Write("\n");
 
                                                                         bufIndex++;
                                                                     }
@@ -238,14 +238,14 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
 
                                                                         if (strcmp($4, "true") == 0)
                                                                         {
-                                                                            Write("  iconst_1\n");
+                                                                            Write("   iconst_1\n");
                                                                         }
                                                                         else if (strcmp($4, "false") == 0)
                                                                         {
-                                                                            Write("  iconst_0\n");
+                                                                            Write("   iconst_0\n");
                                                                         }
                                                                         else
-                                                                            Write("  sipush "); Write($4); Write("\n");
+                                                                            Write("   sipush "); Write($4); Write("\n");
 
                                                                         bufIndex++;
                                                                     }
@@ -262,7 +262,7 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                         t->st_sval = strdup($4);
                                                                         t->constant = 1;
 
-                                                                        Write(" ldc "); Write($4); Write("\n");
+                                                                        Write("   ldc "); Write($4); Write("\n");
 
                                                                         bufIndex++;
                                                                     }
@@ -279,7 +279,7 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                                 t->st_sval = strdup($6);
                                                                                 t->constant = 1;
 
-                                                                                Write(" sipush "); Write($6); Write("\n");
+                                                                                Write("   sipush "); Write($6); Write("\n");
 
                                                                                 bufIndex++;
                                                                             }
@@ -298,14 +298,14 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
 
                                                                                 if (strcmp($6, "true") == 0)
                                                                                 {
-                                                                                    Write("  iconst_1\n");
+                                                                                    Write("    iconst_1\n");
                                                                                 }
                                                                                 else if (strcmp($6, "false") == 0)
                                                                                 {
-                                                                                    Write("  iconst_0\n");
+                                                                                    Write("    iconst_0\n");
                                                                                 }
                                                                                 else
-                                                                                    Write(" sipush "); Write($6); Write("\n");
+                                                                                    Write("   sipush "); Write($6); Write("\n");
 
                                                                                 bufIndex++;
                                                                             }
@@ -321,7 +321,7 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                                 t->st_sval = strdup($6);
                                                                                 t->constant = 1;
                                                                                
-                                                                                Write(" ldc "); Write($6); Write("\n");
+                                                                                Write("   ldc "); Write($6); Write("\n");
 
                                                                                 bufIndex++;
                                                                             }
@@ -338,7 +338,7 @@ glob_variable_declaration:   LET MUT ID SEMICOLON                       {
                                                                             t = lookup($3);
                                                                             t->glob_flag = 1;
                                                                             t->constant = 0;
-                                                                            List("field static int "); List($3); List("\n");
+                                                                            List("  field static int "); List($3); List("\n");
                                                                         }
                                                                         else Trace("line %d: Redeclaration of identifier.\n", linenum);
 
@@ -353,7 +353,7 @@ glob_variable_declaration:   LET MUT ID SEMICOLON                       {
                                                                             t = lookup($3);
                                                                             t->glob_flag = 1;
                                                                             t->constant = 0;
-                                                                            List("field static int "); List($3); List("\n");
+                                                                            List("  field static int "); List($3); List("\n");
                                                                         }
                                                                         else Trace("line %d: Redeclaration of identifier.\n", linenum);
 
@@ -370,7 +370,7 @@ glob_variable_declaration:   LET MUT ID SEMICOLON                       {
                                                                             t->st_ival = stoi($5);
                                                                             t->st_sval = strdup($5);
                                                                             t->constant = 0;
-                                                                            List("field static int "); List($3); List(" = "); List($5); List("\n");
+                                                                            List("  field static int "); List($3); List(" = "); List($5); List("\n");
                                                                         }
                                                                         else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                         }        
@@ -383,7 +383,7 @@ glob_variable_declaration:   LET MUT ID SEMICOLON                       {
                                                                                     t = lookup($3);
                                                                                     t->glob_flag = 1;
                                                                                     t->constant = 0;
-                                                                                    List("field static int "); List($3); List(" = "); List("\n");
+                                                                                    List("  field static int "); List($3); List(" = "); List("\n");
                                                                                 }
                                                                                 else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                                 }
@@ -460,11 +460,11 @@ local_variable_declaration:   LET MUT ID SEMICOLON                      {
                                                                             fprintf(local_tab, "\n");
 
                                                                             counter++;
-                                                                            Write("  sipush "); Write($5); Write("\n");
+                                                                            Write("    sipush "); Write($5); Write("\n");
                                                                             
                                                                             char n[STRSIZE];
                                                                             sprintf(n, "%d", t->counter);
-                                                                            Write("  istore "); Write(n); Write("\n\n");
+                                                                            Write("    istore "); Write(n); Write("\n");
 
                                                                             // put mark for buffer
                                                                             Num(NORMAL);
@@ -493,11 +493,11 @@ local_variable_declaration:   LET MUT ID SEMICOLON                      {
                                                                                     fprintf(local_tab, "\n");
 
                                                                                     counter++;
-                                                                                    Write("  sipush "); Write($7); Write("\n");
+                                                                                    Write("    sipush "); Write($7); Write("\n");
 
                                                                                     char n[STRSIZE];
                                                                                     sprintf(n, "%d", t->counter);
-                                                                                    Write("  istore "); Write(n); Write("\n\n");
+                                                                                    Write("    istore "); Write(n); Write("\n");
 
                                                                                     // put mark for buffer
                                                                                     Num(NORMAL);
@@ -536,14 +536,14 @@ function:       FN ID fn_start R_BRACE fn_block                     {
 
                                                                         if (strcmp($2, "main") == 0)
                                                                         {
-                                                                            List("\nmethod public static void main (java.lang.String[])\n");
+                                                                            List("  method public static void main (java.lang.String[])\n");
                                                                         }
                                                                         else
                                                                         {
-                                                                            List("\nmethod public static void "); List($2); List("()\n");
+                                                                            List("  method public static void "); List($2); List("()\n");
                                                                         }
                                                                         
-                                                                        List("max_stack 15\nmax_locals 15\n{\n");
+                                                                        List("  max_stack 15\n  max_locals 15\n  {\n");
                                                                         
                                                                         for (int i = 0; i < bufIndex; i++)
                                                                         {
@@ -551,8 +551,8 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                             buffer[i][0] = '\0';
                                                                         }
 
-                                                                        List("  return\n");
-                                                                        List("}\n");
+                                                                        List("    return\n");
+                                                                        List("  }");
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                     }
@@ -575,13 +575,13 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                         }
                                                                         printf("Num of pars is %d\n", t->num_of_pars);
 
-                                                                        List("\nmethod public static void "); List($2); List("(");
+                                                                        List("  method public static void "); List($2); List("(");
                                                                         for (int i = 0; i < t->num_of_pars - 1; i++)
                                                                         {
                                                                             List("int, ");
                                                                         }
                                                                         List("int)\n");
-                                                                        List("max_stack 15\nmax_locals 15\n{\n");
+                                                                        List("  max_stack 15\n  max_locals 15\n  {\n");
                                                                        
                                                                         for (int i = 0; i < bufIndex; i++)
                                                                         {
@@ -589,8 +589,8 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                             buffer[i][0] = '\0';
                                                                         }
 
-                                                                        List("  return\n");
-                                                                        List("}\n");
+                                                                        List("    return\n");
+                                                                        List("  }");
 
                                                                         //clear argument table after exit current func
                                                                         for(int i = 0; i < STRSIZE; i++) arg[i][0] = '\0';
@@ -608,10 +608,10 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                         t->parameters = NULL;
                                                                         t->num_of_pars = 0;
 
-                                                                        List("\nmethod public static int "); List($2); List("()\n");
-                                                                        List("max_stack 15\n");
-                                                                        List("max_locals 15\n");
-                                                                        List("{\n\n");
+                                                                        List("  method public static int "); List($2); List("()\n");
+                                                                        List("  max_stack 15\n");
+                                                                        List("  max_locals 15\n");
+                                                                        List("  {\n");
 
                                                                         for (int i = 0; i < bufIndex; i++)
                                                                         {
@@ -619,7 +619,7 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                             buffer[i][0] = '\0';
                                                                         }
                                                                         
-                                                                        List("}\n");
+                                                                        List("  }");
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                     }
@@ -642,15 +642,15 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                                 }
                                                                                 printf("Num of pars is %d\n", t->num_of_pars);
 
-                                                                                List("\nmethod public static int "); List($2); List("(");
+                                                                                List("  method public static int "); List($2); List("(");
                                                                                 for(int i = 0; i < t->num_of_pars - 1; i++)
                                                                                 {
                                                                                     List("int, ");
                                                                                 }
                                                                                 List("int)\n");
-                                                                                List("max_stack 15\n");
-                                                                                List("max_locals 15\n");
-                                                                                List("{\n");
+                                                                                List("  max_stack 15\n");
+                                                                                List("  max_locals 15\n");
+                                                                                List("  {\n");
                                                                                 
                                                                                 for (int i = 0; i < bufIndex; i++)
                                                                                 {
@@ -658,7 +658,7 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                                     buffer[i][0] = '\0';
                                                                                 }
 
-                                                                                List("}\n");
+                                                                                List("  }");
 
                                                                                 //clear argument table after exit current func
                                                                                 for(int i = 0; i < STRSIZE; i++) arg[i][0] = '\0';
@@ -732,7 +732,7 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
 
                                                                         if (t->glob_flag == 1)
                                                                         {
-                                                                            Write("  putstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n\n");
+                                                                            Write("    putstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                                         }
                                                                         else
                                                                         {
@@ -741,19 +741,19 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
 
                                                                             if (temp != NULL && temp->constant == 0)
                                                                             {
-                                                                                Write("  iload "); Write(itos(temp->counter, a)); Write("\n");
+                                                                                Write("    iload "); Write(itos(temp->counter, a)); Write("\n");
                                                                             }
                                                                             else if (temp != NULL && temp->constant == 1)
                                                                             {
-                                                                                Write("  sipush "); Write(t->st_sval); Write("\n");
+                                                                                Write("    sipush "); Write(t->st_sval); Write("\n");
                                                                             }
                                                                             if (temp != NULL && temp->neg == 1)
                                                                             {
                                                                                 temp->neg = 0;
-                                                                                Write("  ineg\n");
+                                                                                Write("    ineg\n");
                                                                             }
                                                                             
-                                                                            Write("  istore "); Write(itos(t->counter, a)); Write("\n\n");
+                                                                            Write("    istore "); Write(itos(t->counter, a)); Write("\n");
                                                                         }
 
                                                                         // put mark for buffer
@@ -768,29 +768,29 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                                     else Trace("line %d: Identifier does not define.\n", linenum);
                                                                     }
                 | PRINT integer_exp SEMICOLON   {
-                                                Write("  getstatic java.io.PrintStream java.lang.System.out\n");
+                                                Write("    getstatic java.io.PrintStream java.lang.System.out\n");
 
                                                 list_t* t = lookup($2);
                                                 if (t != NULL && t->glob_flag == 1)
                                                 {
-                                                    Write("  getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
+                                                    Write("    getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                 }
                                                 else if (t != NULL && t->glob_flag == 0)
                                                 {
                                                     char a[STRSIZE];
-                                                    Write("  iload "); Write(itos(t->counter, a)); Write("\n");
+                                                    Write("    iload "); Write(itos(t->counter, a)); Write("\n");
                                                 }
                                                 else
                                                 {
-                                                    Write("  ldc "); Write($2); Write("\n");
+                                                    Write("    ldc "); Write($2); Write("\n");
                                                 }
 
                                                 if (t != NULL && t->neg == 1)
                                                 {
                                                     t->neg = 0;
-                                                    Write("  ineg\n");
+                                                    Write("    ineg\n");
                                                 }
-                                                Write("  invokevirtual void java.io.PrintStream.print(int)\n\n");
+                                                Write("    invokevirtual void java.io.PrintStream.print(int)\n");
                                                 
                                                 // put mark for buffer
                                                 Num(NORMAL);
@@ -798,9 +798,9 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                 bufIndex++;
                                                 }       
                 | PRINT string_exp SEMICOLON    {
-                                                Write("  getstatic java.io.PrintStream java.lang.System.out\n");
-                                                Write("  ldc "); Write($2); Write("\n");
-                                                Write("  invokevirtual void java.io.PrintStream.print(java.lang.String)\n\n");
+                                                Write("    getstatic java.io.PrintStream java.lang.System.out\n");
+                                                Write("    ldc "); Write($2); Write("\n");
+                                                Write("    invokevirtual void java.io.PrintStream.print(java.lang.String)\n");
 
                                                 // put mark for buffer
                                                 Num(NORMAL);
@@ -808,30 +808,30 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                 bufIndex++;
                                                 }
                 | PRINTLN integer_exp SEMICOLON {
-                                                Write("  getstatic java.io.PrintStream java.lang.System.out\n");
+                                                Write("    getstatic java.io.PrintStream java.lang.System.out\n");
 
                                                 list_t* t = lookup($2);
                                                 if (t != NULL && t->glob_flag == 1)
                                                 {
-                                                    Write("  getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
+                                                    Write("    getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                 }
                                                 else if (t != NULL && t->glob_flag == 0)
                                                 {
                                                     char a[STRSIZE];
-                                                    Write("  iload "); Write(itos(t->counter, a)); Write("\n");
+                                                    Write("    iload "); Write(itos(t->counter, a)); Write("\n");
                                                 }
                                                 else 
                                                 {
-                                                    Write("  ldc "); Write($2); Write("\n");
+                                                    Write("    ldc "); Write($2); Write("\n");
                                                 }
 
                                                 if (t != NULL && t->neg == 1)
                                                 {
                                                     t->neg = 0;
-                                                    Write("  ineg\n");
+                                                    Write("    ineg\n");
                                                 }
 
-                                                Write("  invokevirtual void java.io.PrintStream.println(int)\n\n");
+                                                Write("    invokevirtual void java.io.PrintStream.println(int)\n");
 
                                                 // put mark for buffer
                                                 Num(NORMAL);
@@ -839,9 +839,9 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                 bufIndex++;
                                                 }
                 | PRINTLN string_exp SEMICOLON  {
-                                                Write("  getstatic java.io.PrintStream java.lang.System.out\n");
-                                                Write("  ldc "); Write($2); Write("\n");
-                                                Write("  invokevirtual void java.io.PrintStream.println(java.lang.String)\n\n");
+                                                Write("    getstatic java.io.PrintStream java.lang.System.out\n");
+                                                Write("    ldc "); Write($2); Write("\n");
+                                                Write("    invokevirtual void java.io.PrintStream.println(java.lang.String)\n");
 
                                                 // put mark for buffer
                                                 Num(NORMAL);
@@ -849,7 +849,7 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                 bufIndex++;
                                                 }
                 | RETURN SEMICOLON              {
-                                                Write("  return\n\n");
+                                                Write("    return\n");
 
                                                 // put mark for buffer
                                                 Num(NORMAL);
@@ -857,7 +857,7 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                 bufIndex++;
                                                 }
                 | RETURN integer_exp SEMICOLON  {
-                                                Write("  ireturn\n\n");
+                                                Write("    ireturn\n");
 
                                                 // put mark for buffer
                                                 Num(NORMAL);
@@ -877,7 +877,7 @@ else_statement: ID ASSIGN else_integer_exp SEMICOLON                {
 
                                                                         if (t->glob_flag == 1)
                                                                         {
-                                                                            Write("  putstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n\n");
+                                                                            Write("    putstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                                         }
                                                                         else
                                                                         {
@@ -886,19 +886,19 @@ else_statement: ID ASSIGN else_integer_exp SEMICOLON                {
 
                                                                             if (temp != NULL && temp->constant == 0)
                                                                             {
-                                                                                Write("  iload "); Write(itos(temp->counter, a)); Write("\n");
+                                                                                Write("    iload "); Write(itos(temp->counter, a)); Write("\n");
                                                                             }
                                                                             else if (temp != NULL && temp->constant == 1)
                                                                             {
-                                                                                Write("  sipush "); Write(t->st_sval); Write("\n");
+                                                                                Write("    sipush "); Write(t->st_sval); Write("\n");
                                                                             }
                                                                             if (temp != NULL && temp->neg == 1)
                                                                             {
                                                                                 temp->neg = 0;
-                                                                                Write("  ineg\n");
+                                                                                Write("    ineg\n");
                                                                             }
                                                                             
-                                                                            Write("  istore "); Write(itos(t->counter, a)); Write("\n\n");
+                                                                            Write("    istore "); Write(itos(t->counter, a)); Write("\n");
                                                                         }
 
                                                                         // put mark for buffer
@@ -913,29 +913,29 @@ else_statement: ID ASSIGN else_integer_exp SEMICOLON                {
                                                                     else Trace("line %d: Identifier does not define.\n", linenum);
                                                                     }
                 | PRINT else_integer_exp SEMICOLON   {
-                                                Write("  getstatic java.io.PrintStream java.lang.System.out\n");
+                                                Write("    getstatic java.io.PrintStream java.lang.System.out\n");
 
                                                 list_t* t = lookup($2);
                                                 if (t != NULL && t->glob_flag == 1)
                                                 {
-                                                    Write("  getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
+                                                    Write("    getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                 }
                                                 else if (t != NULL && t->glob_flag == 0)
                                                 {
                                                     char a[STRSIZE];
-                                                    Write("  iload "); Write(itos(t->counter, a)); Write("\n");
+                                                    Write("    iload "); Write(itos(t->counter, a)); Write("\n");
                                                 }
                                                 else
                                                 {
-                                                    Write("  ldc "); Write($2); Write("\n");
+                                                    Write("    ldc "); Write($2); Write("\n");
                                                 }
 
                                                 if (t != NULL && t->neg == 1)
                                                 {
                                                     t->neg = 0;
-                                                    Write("  ineg\n");
+                                                    Write("    ineg\n");
                                                 }
-                                                Write("  invokevirtual void java.io.PrintStream.print(int)\n\n");
+                                                Write("    invokevirtual void java.io.PrintStream.print(int)\n");
                                                 
                                                 // put mark for buffer
                                                 Num(ELSEST);
@@ -943,9 +943,9 @@ else_statement: ID ASSIGN else_integer_exp SEMICOLON                {
                                                 bufIndex++;
                                                 }       
                 | PRINT else_string_exp SEMICOLON    {
-                                                Write("  getstatic java.io.PrintStream java.lang.System.out\n");
-                                                Write("  ldc "); Write($2); Write("\n");
-                                                Write("  invokevirtual void java.io.PrintStream.print(java.lang.String)\n\n");
+                                                Write("    getstatic java.io.PrintStream java.lang.System.out\n");
+                                                Write("    ldc "); Write($2); Write("\n");
+                                                Write("    invokevirtual void java.io.PrintStream.print(java.lang.String)\n");
 
                                                 // put mark for buffer
                                                 Num(ELSEST);
@@ -953,30 +953,30 @@ else_statement: ID ASSIGN else_integer_exp SEMICOLON                {
                                                 bufIndex++;
                                                 }
                 | PRINTLN else_integer_exp SEMICOLON {
-                                                Write("  getstatic java.io.PrintStream java.lang.System.out\n");
+                                                Write("    getstatic java.io.PrintStream java.lang.System.out\n");
 
                                                 list_t* t = lookup($2);
                                                 if (t != NULL && t->glob_flag == 1)
                                                 {
-                                                    Write("  getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
+                                                    Write("    getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                 }
                                                 else if (t != NULL && t->glob_flag == 0)
                                                 {
                                                     char a[STRSIZE];
-                                                    Write("  iload "); Write(itos(t->counter, a)); Write("\n");
+                                                    Write("    iload "); Write(itos(t->counter, a)); Write("\n");
                                                 }
                                                 else 
                                                 {
-                                                    Write("  ldc "); Write($2); Write("\n");
+                                                    Write("    ldc "); Write($2); Write("\n");
                                                 }
 
                                                 if (t != NULL && t->neg == 1)
                                                 {
                                                     t->neg = 0;
-                                                    Write("  ineg\n");
+                                                    Write("    ineg\n");
                                                 }
 
-                                                Write("  invokevirtual void java.io.PrintStream.println(int)\n\n");
+                                                Write("    invokevirtual void java.io.PrintStream.println(int)\n");
 
                                                 // put mark for buffer
                                                 Num(ELSEST);
@@ -984,9 +984,9 @@ else_statement: ID ASSIGN else_integer_exp SEMICOLON                {
                                                 bufIndex++;
                                                 }
                 | PRINTLN else_string_exp SEMICOLON  {
-                                                Write("  getstatic java.io.PrintStream java.lang.System.out\n");
-                                                Write("  ldc "); Write($2); Write("\n");
-                                                Write("  invokevirtual void java.io.PrintStream.println(java.lang.String)\n\n");
+                                                Write("    getstatic java.io.PrintStream java.lang.System.out\n");
+                                                Write("    ldc "); Write($2); Write("\n");
+                                                Write("    invokevirtual void java.io.PrintStream.println(java.lang.String)\n");
 
                                                 // put mark for buffer
                                                 Num(ELSEST);
@@ -1017,27 +1017,27 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE else_block    {
                                                                 if (strcmp($3, "true") == 0 || strcmp($3, "false") == 0)
                                                                 {
                                                                     for (k = i; k < j; k++) strcat(str, buffer[k]);
-                                                                    strcat(str, "  goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
-                                                                    strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                    strcat(str, "    goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
+                                                                    strcat(str, "  L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                     for (k = j; k < bufIndex; k++) strcat(str, buffer[k]);
-                                                                    strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                    strcat(str, "  L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                 }
                                                                 else {
                                                                     strcat(str, buffer[i]);
-                                                                    strcat(str, "  goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
-                                                                    strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
-                                                                    strcat(str, "  iconst_1\n");
-                                                                    strcat(str, "L"); strcat(str, itos(L, l)); strcat(str, ":\n");
-                                                                    strcat(str, "  ifeq L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
+                                                                    strcat(str, "    goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
+                                                                    strcat(str, "  L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                    strcat(str, "    iconst_1\n");
+                                                                    strcat(str, "  L"); strcat(str, itos(L, l)); strcat(str, ":\n");
+                                                                    strcat(str, "    ifeq L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
                                                                     L++;
 
                                                                     for (k = i + 1; k < j; k++) strcat(str, buffer[k]);
-                                                                    strcat(str, "  goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
+                                                                    strcat(str, "    goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
 
-                                                                    strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                    strcat(str, "  L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
 
                                                                     for (k = j; k < bufIndex; k++) strcat(str, buffer[k]);
-                                                                    strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                    strcat(str, "  L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                 }
 
                                                                 for (k = i; k < bufIndex; k++) buffer[k][0] = '\0';
@@ -1064,16 +1064,16 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE else_block    {
                                                                 {
                                                                     for (j = i; j < bufIndex; j++) strcat(str, buffer[i]);
                                                                           
-                                                                    strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                    strcat(str, "  L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                 }
                                                                 else
                                                                 {
                                                                     strcat(str, buffer[i]);
-                                                                    strcat(str, "  goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
-                                                                    strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
-                                                                    strcat(str, "  iconst_1\n");
+                                                                    strcat(str, "    goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
+                                                                    strcat(str, "  L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                    strcat(str, "    iconst_1\n");
                                                                     for (j = i + 1; j < bufIndex; j++) strcat(str, buffer[j]);
-                                                                    strcat(str, "L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
+                                                                    strcat(str, "  L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                 }
 
                                                                 for (j = i; j < bufIndex; j++) buffer[i][0] = '\0';
@@ -1102,17 +1102,17 @@ loop:           WHILE L_BRACE bool_exp R_BRACE block    {
                                                         int Ltrue = L;
                                                         int Lfalse = L + 2;
                                                         int Lexit = L + 3;
-                                                        strcat(str, "L"); strcat(str, itos(Lbegin, l)); strcat(str, ":\n");
+                                                        strcat(str, "  L"); strcat(str, itos(Lbegin, l)); strcat(str, ":\n");
                                                         strcat(str, buffer[i]);
-                                                        strcat(str, "  goto L"); strcat(str, itos(Lfalse, l)); strcat(str, "\n");
-                                                        strcat(str, "L"); strcat(str, itos(Ltrue, l)); strcat(str, ":\n");
-                                                        strcat(str, "  iconst_1\n");
-                                                        strcat(str, "L"); strcat(str, itos(Lfalse, l)); strcat(str, ":\n");
-                                                        strcat(str, "  ifeq L"); strcat(str, itos(Lexit, l)); strcat(str, "\n\n");
+                                                        strcat(str, "    goto L"); strcat(str, itos(Lfalse, l)); strcat(str, "\n");
+                                                        strcat(str, "  L"); strcat(str, itos(Ltrue, l)); strcat(str, ":\n");
+                                                        strcat(str, "    iconst_1\n");
+                                                        strcat(str, "  L"); strcat(str, itos(Lfalse, l)); strcat(str, ":\n");
+                                                        strcat(str, "    ifeq L"); strcat(str, itos(Lexit, l)); strcat(str, "\n");
                                                         for (j = i + 1; j < bufIndex; j++)
                                                             strcat(str, buffer[j]);
-                                                        strcat(str, "  goto L"); strcat(str, itos(Lbegin, l)); strcat(str, "\n");
-                                                        strcat(str, "L"); strcat(str, itos(Lexit, l)); strcat(str, ":\n");
+                                                        strcat(str, "    goto L"); strcat(str, itos(Lbegin, l)); strcat(str, "\n");
+                                                        strcat(str, "  L"); strcat(str, itos(Lexit, l)); strcat(str, ":\n");
 
                                                         L += 4;
 
@@ -1128,10 +1128,10 @@ bool_exp:       integer_exp LESS integer_exp    {
                                                 
                                                 judge(t1, t2, file, arg, $1, $3);
 
-                                                Write("  isub\n");
+                                                Write("    isub\n");
                                                 char l[STRSIZE];
-                                                Write("  iflt L"); Write(itos(L, l)); Write("\n");
-                                                Write("  iconst_0\n");
+                                                Write("    iflt L"); Write(itos(L, l)); Write("\n");
+                                                Write("    iconst_0\n");
                                                 
                                                                                 
                                                 // return part
@@ -1157,10 +1157,10 @@ bool_exp:       integer_exp LESS integer_exp    {
                                                 
                                                 judge(t1, t2, file, arg, $1, $3);
 
-                                                Write("  isub\n");
+                                                Write("    isub\n");
                                                 char l[STRSIZE];
-                                                Write("  ifle L"); Write(itos(L, l)); Write("\n");
-                                                Write("  iconst_0\n");
+                                                Write("    ifle L"); Write(itos(L, l)); Write("\n");
+                                                Write("    iconst_0\n");
 
 
                                                 // return part
@@ -1186,10 +1186,10 @@ bool_exp:       integer_exp LESS integer_exp    {
                                                 
                                                 judge(t1, t2, file, arg, $1, $3);
 
-                                                Write("  isub\n");
+                                                Write("    isub\n");
                                                 char l[STRSIZE];
-                                                Write("  ifeq L"); Write(itos(L, l)); Write("\n");
-                                                Write("  iconst_0\n");
+                                                Write("    ifeq L"); Write(itos(L, l)); Write("\n");
+                                                Write("    iconst_0\n");
                                                 
 
                                                 // return part
@@ -1215,10 +1215,10 @@ bool_exp:       integer_exp LESS integer_exp    {
                                                 
                                                 judge(t1, t2, file, arg, $1, $3);
 
-                                                Write("  isub\n");
+                                                Write("    isub\n");
                                                 char l[STRSIZE];
-                                                Write("  ifge L"); Write(itos(L, l)); Write("\n");
-                                                Write("  iconst_0\n");
+                                                Write("    ifge L"); Write(itos(L, l)); Write("\n");
+                                                Write("    iconst_0\n");
                                                 
 
                                                 // return part
@@ -1244,10 +1244,10 @@ bool_exp:       integer_exp LESS integer_exp    {
                                                     
                                                     judge(t1, t2, file, arg, $1, $3);
 
-                                                    Write("  isub\n");
+                                                    Write("    isub\n");
                                                     char l[STRSIZE];
-                                                    Write("  ifgt L"); Write(itos(L, l)); Write("\n");
-                                                    Write("  iconst_0\n");
+                                                    Write("    ifgt L"); Write(itos(L, l)); Write("\n");
+                                                    Write("    iconst_0\n");
                                                     
 
                                                     // return part
@@ -1273,10 +1273,10 @@ bool_exp:       integer_exp LESS integer_exp    {
                                                 
                                                 judge(t1, t2, file, arg, $1, $3);
                                                 
-                                                Write("  isub\n");
+                                                Write("    isub\n");
                                                 char l[STRSIZE];
-                                                Write("  ifne L"); Write(itos(L, l)); Write("\n");
-                                                Write("  iconst_0\n");
+                                                Write("    ifne L"); Write(itos(L, l)); Write("\n");
+                                                Write("    iconst_0\n");
                                                 
 
                                                 // return part
@@ -1298,8 +1298,8 @@ bool_exp:       integer_exp LESS integer_exp    {
                                                 }
                 | TRUE                          {
                                                 char l[STRSIZE];
-                                                Write("  iconst_1\n");
-                                                Write("  ifeq L"); Write(itos(L, l)); Write("\n");
+                                                Write("    iconst_1\n");
+                                                Write("    ifeq L"); Write(itos(L, l)); Write("\n");
                                                 $$ = strdup($1);
 
                                                 Num(BOOLEXP);
@@ -1308,8 +1308,8 @@ bool_exp:       integer_exp LESS integer_exp    {
                                                 }
                 | FALSE                         {
                                                 char l[STRSIZE];
-                                                Write("  iconst_0\n");
-                                                Write("  ifeq L"); Write(itos(L, l)); Write("\n");
+                                                Write("    iconst_0\n");
+                                                Write("    ifeq L"); Write(itos(L, l)); Write("\n");
                                                 $$ = strdup($1);
 
                                                 Num(BOOLEXP);
@@ -1421,12 +1421,12 @@ function_invocation:       ID L_BRACE R_BRACE   {
                                                                                 list_t* temp = lookup(t2->param_name);
                                                                                 if (temp != NULL && temp->glob_flag == 1)
                                                                                 {
-                                                                                    Write("  getstatic int "); Write(file); Write("."); Write(temp->st_name); Write("\n");
+                                                                                    Write("    getstatic int "); Write(file); Write("."); Write(temp->st_name); Write("\n");
                                                                                 }
                                                                                 else
                                                                                 {
-                                                                                    Write("  sipush "); Write(t2->sval); Write("\n");
-                                                                                }
+                                                                                    Write("    sipush "); Write(t2->sval); Write("\n");
+                                                                                } 
                                                                             }
 
                                                                             if (t1->par_type != t2->par_type)
@@ -1450,7 +1450,7 @@ function_invocation:       ID L_BRACE R_BRACE   {
 
                                                                         if (t->num_of_pars == count)
                                                                         {
-                                                                            Write("  invokestatic int "); Write(file); Write("."); Write(t->st_name); Write("(");
+                                                                            Write("    invokestatic int "); Write(file); Write("."); Write(t->st_name); Write("(");
                                                                             for (int i = 0; i < t->num_of_pars - 1; i++)
                                                                             {
                                                                                 Write("int, ");
@@ -1474,7 +1474,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         list_t* t2 = lookup($3);
                                                         
                                                         judge(t1, t2, file, arg, $1, $3);
-                                                        Write("  iadd\n");
+                                                        Write("    iadd\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1494,7 +1494,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         
                                                         judge(t1, t2, file, arg, $1, $3);
 
-                                                        Write("  isub\n");
+                                                        Write("    isub\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1514,7 +1514,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         
                                                         judge(t1, t2, file, arg, $1, $3);
 
-                                                        Write("  imul\n");
+                                                        Write("    imul\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1534,7 +1534,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         
                                                         judge(t1, t2, file, arg, $1, $3);
 
-                                                        Write("  idiv\n");
+                                                        Write("    idiv\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1558,7 +1558,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         
                                                         judge(t1, t2, file, arg, $1, $3);
 
-                                                        Write("  irem\n");
+                                                        Write("    irem\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1601,18 +1601,18 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 list_t* t = lookup($2);
                                                 if (t != NULL && t->glob_flag == 1 && arg[t->counter] == NULL)
                                                 {
-                                                    Write("  getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
+                                                    Write("    getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                 }
                                                 else if (t != NULL && t->glob_flag == 0)
                                                 {
                                                     char a[STRSIZE];
-                                                    Write("  iload "); Write(itos(t->counter, a)); Write("\n");
+                                                    Write("    iload "); Write(itos(t->counter, a)); Write("\n");
                                                 }
                                                 else
                                                 {
-                                                    Write("  sipush "); Write($2); Write("\n");
+                                                    Write("    sipush "); Write($2); Write("\n");
                                                 }
-                                                Write("  ixor\n");
+                                                Write("    ixor\n");
 
                                                 // return part
                                                 int i;
@@ -1637,7 +1637,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 
                                                 judge(t1, t2, file, arg, $1, $3);
 
-                                                Write("  iand\n");
+                                                Write("    iand\n");
 
                                                 // return part
                                                 int i, j;
@@ -1661,8 +1661,8 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 list_t* t2 = lookup($3);
                                                 
                                                 judge(t1, t2, file, arg, $1, $3);
-
-                                                Write("  ior\n");
+ 
+                                                Write("    ior\n");
 
                                                 // return part
                                                 int i, j;
@@ -1716,7 +1716,7 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                         list_t* t2 = lookup($3);
                                                         
                                                         judge(t1, t2, file, arg, $1, $3);
-                                                        Write("  iadd\n");
+                                                        Write("    iadd\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1730,33 +1730,33 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
 
                                                         bufIndex++;
                                                         }
-                | else_integer_exp MINUS else_integer_exp         {
-                                                        list_t* t1 = lookup($1);
-                                                        list_t* t2 = lookup($3);
-                                                        
-                                                        judge(t1, t2, file, arg, $1, $3);
+                | else_integer_exp MINUS else_integer_exp   {
+                                                            list_t* t1 = lookup($1);
+                                                            list_t* t2 = lookup($3);
+                                                            
+                                                            judge(t1, t2, file, arg, $1, $3);
 
-                                                        Write("  isub\n");
+                                                            Write("    isub\n");
 
-                                                        // return part
-                                                        int i, j, sum;
-                                                        char b[STRSIZE];
-                                                        i = stoi($1); j = stoi($3);
-                                                        sum = i - j;
-                                                        $$ = strdup(itos(sum, b));
+                                                            // return part
+                                                            int i, j, sum;
+                                                            char b[STRSIZE];
+                                                            i = stoi($1); j = stoi($3);
+                                                            sum = i - j;
+                                                            $$ = strdup(itos(sum, b));
 
-                                                        // put mark for buffer
-                                                        Num(ELSEST);
+                                                            // put mark for buffer
+                                                            Num(ELSEST);
 
-                                                        bufIndex++;
-                                                        }
+                                                            bufIndex++;
+                                                            }
                 | else_integer_exp TIME else_integer_exp          {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
                                                         
                                                         judge(t1, t2, file, arg, $1, $3);
 
-                                                        Write("  imul\n");
+                                                        Write("    imul\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1770,37 +1770,37 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
 
                                                         bufIndex++;
                                                         }
-                | else_integer_exp DIVIDE else_integer_exp        {
-                                                        list_t* t1 = lookup($1);
-                                                        list_t* t2 = lookup($3);
-                                                        
-                                                        judge(t1, t2, file, arg, $1, $3);
+                | else_integer_exp DIVIDE else_integer_exp  {
+                                                            list_t* t1 = lookup($1);
+                                                            list_t* t2 = lookup($3);
+                                                            
+                                                            judge(t1, t2, file, arg, $1, $3);
 
-                                                        Write("  idiv\n");
+                                                            Write("    idiv\n");
 
-                                                        // return part
-                                                        int i, j, sum;
-                                                        char b[STRSIZE];
-                                                        i = stoi($1); j = stoi($3);
-                                                        if (j == 0) yyerror("line %d: Divided by zero.");
-                                                        else
-                                                        {
-                                                            sum = i / j;
-                                                            $$ = strdup(itos(sum, b));
-                                                        }
+                                                            // return part
+                                                            int i, j, sum;
+                                                            char b[STRSIZE];
+                                                            i = stoi($1); j = stoi($3);
+                                                            if (j == 0) yyerror("line %d: Divided by zero.");
+                                                            else
+                                                            {
+                                                                sum = i / j;
+                                                                $$ = strdup(itos(sum, b));
+                                                            }
 
-                                                        // put mark for buffer
-                                                        Num(ELSEST);
+                                                            // put mark for buffer
+                                                            Num(ELSEST);
 
-                                                        bufIndex++;
-                                                        }
+                                                            bufIndex++;
+                                                            }
                 | else_integer_exp MODULUS else_integer_exp       {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
                                                         
                                                         judge(t1, t2, file, arg, $1, $3);
 
-                                                        Write("  irem\n");
+                                                        Write("    irem\n");
 
                                                         // return part
                                                         int i, j, sum;
@@ -1836,25 +1836,25 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                             $$ = strdup(itos(i, a));
                                                         }
                                                         }
-                | L_BRACE else_integer_exp R_BRACE           {
+                | L_BRACE else_integer_exp R_BRACE      {
                                                         $$ = strdup($2);
                                                         }
-                | EXCLAMATION else_integer_exp       {
+                | EXCLAMATION else_integer_exp  {
                                                 list_t* t = lookup($2);
                                                 if (t != NULL && t->glob_flag == 1 && arg[t->counter] == NULL)
                                                 {
-                                                    Write("  getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
+                                                    Write("    getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                 }
                                                 else if (t != NULL && t->glob_flag == 0)
                                                 {
                                                     char a[STRSIZE];
-                                                    Write("  iload "); Write(itos(t->counter, a)); Write("\n");
+                                                    Write("    iload "); Write(itos(t->counter, a)); Write("\n");
                                                 }
                                                 else
                                                 {
-                                                    Write("  sipush "); Write($2); Write("\n");
+                                                    Write("    sipush "); Write($2); Write("\n");
                                                 }
-                                                Write("  ixor\n");
+                                                Write("    ixor\n");
 
                                                 // return part
                                                 int i;
@@ -1879,7 +1879,7 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                 
                                                 judge(t1, t2, file, arg, $1, $3);
 
-                                                Write("  iand\n");
+                                                Write("    iand\n");
 
                                                 // return part
                                                 int i, j;
@@ -1904,7 +1904,7 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                 
                                                 judge(t1, t2, file, arg, $1, $3);
 
-                                                Write("  ior\n");
+                                                Write("    ior\n");
 
                                                 // return part
                                                 int i, j;
@@ -2017,13 +2017,7 @@ int main(int argc, char** argv)
         yyerror("Parsing error !");     /* syntax error */
 
     fclose(yyin);                       /* close input file */
-    List("\n}\n\n");                      /* close the class */
-
-    // write every code line into javaa
-    for (int i = 0; i < codeCounter; i++)
-    {
-        List(code[i]);
-    }
+    List("\n}\n");                      /* close the class */
 
     fclose(javaa);                      /* close the javaa */
 
@@ -2046,58 +2040,58 @@ void judge(list_t* t1, list_t* t2, char* file, char arg[STRSIZE][STRSIZE], char*
 
 	if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1)
 	{
-		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t1->st_name); strcat(cat, "\n");
-		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t2->st_name); strcat(cat, "\n");
+		strcat(cat, "    getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t1->st_name); strcat(cat, "\n");
+		strcat(cat, "    getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t2->st_name); strcat(cat, "\n");
 	}
 	else if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 0 && arg[t1->counter] == NULL)
 	{
-		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t1->st_name); strcat(cat, "\n");
-		strcat(cat, "  iload "); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
+		strcat(cat, "    getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t1->st_name); strcat(cat, "\n");
+		strcat(cat, "    iload "); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
 	}
 	else if (t1 != NULL && t1->glob_flag == 0 && t2 != NULL && t2->glob_flag == 1 && arg[t2->counter] == NULL)
 	{
-		strcat(cat, "  iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
-		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t2->st_name); strcat(cat, "\n");
+		strcat(cat, "    iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
+		strcat(cat, "    getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t2->st_name); strcat(cat, "\n");
 	}
 	else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL)
 	{
-		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t1->st_name); strcat(cat, "\n");
-		strcat(cat, "  sipush "); strcat(cat, $3); strcat(cat, "\n");
+		strcat(cat, "    getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t1->st_name); strcat(cat, "\n");
+		strcat(cat, "    sipush "); strcat(cat, $3); strcat(cat, "\n");
 	}
 	else if (t1 == NULL && t2 != NULL && t2->glob_flag == 1 && t2->scope == 0)
 	{
-		strcat(cat, "  sipush "); strcat(cat, $1); strcat(cat, "\n");
-		strcat(cat, "  getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t2->st_name); strcat(cat, "\n");
+		strcat(cat, "    sipush "); strcat(cat, $1); strcat(cat, "\n");
+		strcat(cat, "    getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t2->st_name); strcat(cat, "\n");
 	}
 	else if (t1 != NULL && t2 != NULL && t1->constant == 0 && t2->constant == 0)
 	{
-		strcat(cat, "  iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
-		strcat(cat, "  iload "); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
+		strcat(cat, "    iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
+		strcat(cat, "    iload "); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
 	}
     else if (t1 != NULL && t2 != NULL && t1->constant == 1 && t2->constant == 0)
     {
-        strcat(cat, "  sipush "); strcat(cat, t1->st_sval); strcat(cat, "\n");
-		strcat(cat, "  iload "); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
+        strcat(cat, "    sipush "); strcat(cat, t1->st_sval); strcat(cat, "\n");
+		strcat(cat, "    iload "); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
     }
     else if (t1 != NULL && t2 != NULL && t1->constant == 0 && t2->constant == 1)
     {
-		strcat(cat, "  iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
-        strcat(cat, "  sipush "); strcat(cat, t2->st_sval); strcat(cat, "\n");
+		strcat(cat, "    iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
+        strcat(cat, "    sipush "); strcat(cat, t2->st_sval); strcat(cat, "\n");
     }
 	else if (t1 != NULL && t2 == NULL)
 	{
-		strcat(cat, "  iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
-		strcat(cat, "  sipush "); strcat(cat, $3); strcat(cat, "\n");
+		strcat(cat, "    iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
+		strcat(cat, "    sipush "); strcat(cat, $3); strcat(cat, "\n");
 	}
 	else if (t1 == NULL && t2 != NULL)
 	{
-		strcat(cat, "  sipush "); strcat(cat, $1); strcat(cat, "\n");
-		strcat(cat, "  iload "); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
+		strcat(cat, "    sipush "); strcat(cat, $1); strcat(cat, "\n");
+		strcat(cat, "    iload "); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
 	}
 	else
 	{
-		strcat(cat, "  sipush "); strcat(cat, t1->st_sval); strcat(cat, "\n");
-		strcat(cat, "  sipush "); strcat(cat, t2->st_sval); strcat(cat, "\n");
+		strcat(cat, "    sipush "); strcat(cat, t1->st_sval); strcat(cat, "\n");
+		strcat(cat, "    sipush "); strcat(cat, t2->st_sval); strcat(cat, "\n");
 	}
 
 	Write(cat);

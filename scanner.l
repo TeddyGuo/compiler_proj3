@@ -189,7 +189,10 @@ list_t* temp;
         char line[STRSIZE];
 
         // store code for writing into javaa file
-        strcat(code[codeCounter], "/* "); strcat(code[codeCounter], itos(linenum, line)); strcat(code[codeCounter], ": "); strcat(code[codeCounter], buf); strcat(code[codeCounter++], " */\n");
+        // strcat(code[codeCounter], "/*"); strcat(code[codeCounter], itos(linenum, line)); strcat(code[codeCounter], ": "); strcat(code[codeCounter], buf); strcat(code[codeCounter++], "*/\n");
+
+        // write every code line into javaa
+        // fprintf(javaa, "%s", code[codeCounter-1]);
 
         LIST;
         printf("%d: %s", linenum++, buf);
