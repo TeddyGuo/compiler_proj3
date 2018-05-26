@@ -2,9 +2,10 @@ P3-jvm.pdf
 proj3.pdf
 lex.c
 parser.c
-parser
+gen
 parser.tab.h
 dump.out
+local.out
 *.jasm
 compiler_proj3/javaa/*
 compiler_proj3/javaaPortable/*
