@@ -1001,7 +1001,7 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE else_block    {
                                                                 str[0] = '\0';
 
                                                                 // judge I should pop back how many blocks
-                                                                int i, j, k, m;
+                                                                int i, j, k = 0, m;
                                                                 for (i = bufIndex - 1; i >= 0; i--)
                                                                 {
                                                                     if (bufferMark[i] == ELSEST)
@@ -1030,7 +1030,7 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE else_block    {
                                                                     strcat(str, "  L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                 }
                                                                 else {
-                                                                    strcat(str, buffer[i]);
+                                                                    for (m = k + 1; m <= i; m++) strcat(str, buffer[m]);
                                                                     strcat(str, "    goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
                                                                     strcat(str, "  L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                     strcat(str, "    iconst_1\n");
@@ -1047,9 +1047,9 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE else_block    {
                                                                     strcat(str, "  L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                 }
 
-                                                                for (m = i; m < bufIndex; m++) buffer[m][0] = '\0';
+                                                                for (m = k + 1; m < bufIndex; m++) buffer[m][0] = '\0';
 
-                                                                bufIndex -= i;
+                                                                bufIndex -= k + 1;
                                                                 Write(str);
                                                                 }
                 | IF L_BRACE bool_exp R_BRACE block             {
@@ -1082,7 +1082,7 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE else_block    {
                                                                 }
                                                                 else
                                                                 {
-                                                                    strcat(str, buffer[i]);
+                                                                    for (k = j + 1; k <= i; k++) strcat(str, buffer[k]);
                                                                     strcat(str, "    goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
                                                                     strcat(str, "  L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                     strcat(str, "    iconst_1\n");
@@ -1090,9 +1090,9 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE else_block    {
                                                                     strcat(str, "  L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                 }
 
-                                                                for (k = i; k < bufIndex; k++) buffer[k][0] = '\0';
+                                                                for (k = j + 1; k < bufIndex; k++) buffer[k][0] = '\0';
                                                                 
-                                                                bufIndex -= i;
+                                                                bufIndex -= j + 1;
                                                                 Write(str);
                                                                 }
                 ;
@@ -1138,7 +1138,7 @@ loop:           WHILE L_BRACE bool_exp R_BRACE block    {
                                                         L += 4;
 
                                                         for (k = j + 1; k < bufIndex; k++) buffer[k][0] = '\0';
-                                                        bufIndex -= i + j;
+                                                        bufIndex -= j + 1;
                                                         Write(str);
                                                         }
                 ;
