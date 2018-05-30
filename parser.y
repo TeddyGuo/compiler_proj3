@@ -536,11 +536,11 @@ function:       FN ID fn_start R_BRACE fn_block                     {
 
                                                                         if (strcmp($2, "main") == 0)
                                                                         {
-                                                                            List("  method public static void main (java.lang.String[])\n");
+                                                                            List("\n  method public static void main (java.lang.String[])\n");
                                                                         }
                                                                         else
                                                                         {
-                                                                            List("  method public static void "); List($2); List("()\n");
+                                                                            List("\n  method public static void "); List($2); List("()\n");
                                                                         }
                                                                         
                                                                         List("  max_stack 15\n  max_locals 15\n  {\n");
@@ -552,7 +552,7 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                         }
 
                                                                         List("    return\n");
-                                                                        List("  }\n");
+                                                                        List("  }");
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                     }
@@ -575,7 +575,7 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                         }
                                                                         printf("Num of pars is %d\n", t->num_of_pars);
 
-                                                                        List("  method public static void "); List($2); List("(");
+                                                                        List("\n  method public static void "); List($2); List("(");
                                                                         for (int i = 0; i < t->num_of_pars - 1; i++)
                                                                         {
                                                                             List("int, ");
@@ -590,7 +590,7 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                         }
 
                                                                         List("    return\n");
-                                                                        List("  }\n");
+                                                                        List("  }");
 
                                                                         //clear argument table after exit current func
                                                                         for(int i = 0; i < STRSIZE; i++) arg[i][0] = '\0';
@@ -608,7 +608,7 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                         t->parameters = NULL;
                                                                         t->num_of_pars = 0;
 
-                                                                        List("  method public static int "); List($2); List("()\n");
+                                                                        List("\n  method public static int "); List($2); List("()\n");
                                                                         List("  max_stack 15\n");
                                                                         List("  max_locals 15\n");
                                                                         List("  {\n");
@@ -619,7 +619,7 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                             buffer[i][0] = '\0';
                                                                         }
                                                                         
-                                                                        List("  }\n");
+                                                                        List("  }");
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                     }
@@ -642,7 +642,7 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                                 }
                                                                                 printf("Num of pars is %d\n", t->num_of_pars);
 
-                                                                                List("  method public static int "); List($2); List("(");
+                                                                                List("\n  method public static int "); List($2); List("(");
                                                                                 for(int i = 0; i < t->num_of_pars - 1; i++)
                                                                                 {
                                                                                     List("int, ");
@@ -658,7 +658,7 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                                     buffer[i][0] = '\0';
                                                                                 }
 
-                                                                                List("  }\n");
+                                                                                List("  }");
 
                                                                                 //clear argument table after exit current func
                                                                                 for(int i = 0; i < STRSIZE; i++) arg[i][0] = '\0';
