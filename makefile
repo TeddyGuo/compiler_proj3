@@ -15,3 +15,4 @@ clean:
 	rm -rf gen parser.c lex.c parser.tab.h
 	rm -rf *.out
 	rm -rf *.jasm
+	rm -rf *.class
