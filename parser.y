@@ -100,8 +100,7 @@ extern FILE* yyout;
 extern int linenum;
 extern int yylex();
 extern char buf[256];
-extern char code[MAX_LINE_CODE][MAX_LINE_CODE];
-extern int codeCounter;
+
 FILE* javaa;        //file for bytecode
 FILE* local_tab;    // local_var output file
 char* file;         // filename without extension
