@@ -189,11 +189,11 @@ list_t* temp;
                                         }
 
 \n      {
-        char line[STRSIZE];
-        strcat(buffer[bufIndex], "/* "); strcat(buffer[bufIndex], itos(linenum, line) ); strcat(buffer[bufIndex], ": ");
-        strcat(buffer[bufIndex], buf); strcat(buffer[bufIndex], " */\n");
+        //char line[STRSIZE];
+        //strcat(buffer[bufIndex], "/* "); strcat(buffer[bufIndex], itos(linenum, line) ); strcat(buffer[bufIndex], ": ");
+        //strcat(buffer[bufIndex], buf); strcat(buffer[bufIndex], " */\n");
 
-        bufferMark[bufIndex++] = 0; // Normal state
+        //bufferMark[bufIndex++] = 0; // Normal state
 
         LIST;
         printf("%d: %s", linenum++, buf);
