@@ -65,6 +65,10 @@ extern FILE* javaa;
 int linenum = 1;
 char buf[MAX_LINE_LENG];
 
+extern char buffer[STRSIZE][1024]; // reserve the code generation in the func cause it is fucking reversed.
+extern int bufIndex;
+extern int bufferMark[STRSIZE]; // remark what kind of handle about the match buffer blocks.
+
 char* tempStr;
 int indexForStr = 1;
 list_t* temp;
@@ -185,6 +189,12 @@ list_t* temp;
                                         }
 
 \n      {
+        char line[STRSIZE];
+        strcat(buffer[bufIndex], "/* "); strcat(buffer[bufIndex], itos(linenum, line) ); strcat(buffer[bufIndex], ": ");
+        strcat(buffer[bufIndex], buf); strcat(buffer[bufIndex], " */\n");
+
+        bufferMark[bufIndex++] = 0; // Normal state
+
         LIST;
         printf("%d: %s", linenum++, buf);
         buf[0] = '\0';

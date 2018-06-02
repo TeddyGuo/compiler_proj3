@@ -2597,6 +2597,8 @@ int main(int argc, char** argv)
         yyerror("Parsing error !");     /* syntax error */
 
     fclose(yyin);                       /* close input file */
+    char line[STRSIZE];
+    List("\n/* "); fprintf(javaa, "%s", itos(linenum-1, line)); List(": } */"); // end of rust file
     List("\n}\n");                      /* close the class */
 
     fclose(javaa);                      /* close the javaa */
