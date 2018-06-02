@@ -12,6 +12,8 @@ make 之後會產生執行檔 gen 代表 generator
 
 總之請這樣使用吧！！！
 
+如此一來，就會產生.jasm檔案可以在linux環境在透過javaa轉成.class正確以JVM執行
+
 parser.y 裡將除了integer-type 之外的變數文法都刪掉了
 就如proj3.pdf 裡所給予的限制去做修改
 
@@ -33,6 +35,9 @@ jasm檔案裡
 
 May 26, 2018
 更正：我後面發現這樣執行javaa會報syntax error，所以我還是拿掉了
+June 2, 2018
+更正：會報錯是因為我在Mac OS上執行的關係，在Ubuntu可以正確執行，不過我還是沒加回去
+	倒是測過答案，應該沒啥問題
 
 每次編譯完一個程式都會產生一個jasm，一個local.out，一個dump.out
 
