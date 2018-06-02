@@ -6,6 +6,8 @@ June 1, 2018 added
 make 之後會產生執行檔 gen 代表 generator
 (不要吐槽，我只是懶得每次打generator 才打gen)
 
+有一些shift/reduce conflicts 的錯誤，不過因為我這邊的測試程式沒事我就懶得管了
+
 使用方法為./gen filename.rust
 
 因為C main function 寫在parser.y 文件裡，所以好像只能這樣用嗎？我也不確定
@@ -13,6 +15,8 @@ make 之後會產生執行檔 gen 代表 generator
 總之請這樣使用吧！！！
 
 如此一來，就會產生.jasm檔案可以在linux環境在透過javaa轉成.class正確以JVM執行
+
+啊，我本來是想直接看能不能把.class用 make 的方式直接產生，好像是不行，所以就要麻煩助教辛苦點自己產生一下
 
 parser.y 裡將除了integer-type 之外的變數文法都刪掉了
 就如proj3.pdf 裡所給予的限制去做修改
