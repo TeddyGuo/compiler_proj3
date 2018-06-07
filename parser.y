@@ -1142,7 +1142,7 @@ loop:           WHILE L_BRACE bool_exp R_BRACE block    {
                                                         }
                 ;
 
-bool_exp:       integer_exp ADD integer_exp             {
+bool_exp:       bool_exp ADD bool_exp             {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
                                                         
@@ -1161,7 +1161,7 @@ bool_exp:       integer_exp ADD integer_exp             {
 
                                                         bufIndex++;
                                                         }
-                | integer_exp MINUS integer_exp         {
+                | bool_exp MINUS bool_exp         {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
                                                         
@@ -1181,7 +1181,7 @@ bool_exp:       integer_exp ADD integer_exp             {
 
                                                         bufIndex++;
                                                         }
-                | integer_exp TIME integer_exp          {
+                | bool_exp TIME bool_exp          {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
                                                         
@@ -1201,7 +1201,7 @@ bool_exp:       integer_exp ADD integer_exp             {
 
                                                         bufIndex++;
                                                         }
-                | integer_exp DIVIDE integer_exp        {
+                | bool_exp DIVIDE bool_exp        {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
                                                         
@@ -1225,7 +1225,7 @@ bool_exp:       integer_exp ADD integer_exp             {
 
                                                         bufIndex++;
                                                         }
-                | integer_exp MODULUS integer_exp       {
+                | bool_exp MODULUS bool_exp       {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
                                                         
@@ -1245,7 +1245,7 @@ bool_exp:       integer_exp ADD integer_exp             {
 
                                                         bufIndex++;
                                                         }
-                | MINUS integer_exp %prec UMINUS        {
+                | MINUS bool_exp %prec UMINUS        {
                                                         list_t* t = lookup($2);
                                                         
                                                         // return part
@@ -1267,10 +1267,10 @@ bool_exp:       integer_exp ADD integer_exp             {
                                                             $$ = strdup(itos(i, a));
                                                         }
                                                         }
-                | L_BRACE integer_exp R_BRACE           {
+                | L_BRACE bool_exp R_BRACE           {
                                                         $$ = strdup($2);
                                                         }
-                | EXCLAMATION integer_exp       {
+                | EXCLAMATION bool_exp       {
                                                 list_t* t = lookup($2);
                                                 if (t != NULL && t->glob_flag == 1 && arg[t->counter] == NULL)
                                                 {
@@ -1304,7 +1304,7 @@ bool_exp:       integer_exp ADD integer_exp             {
 
                                                 bufIndex++;
                                                 }
-                | integer_exp AND integer_exp   {
+                | bool_exp AND bool_exp   {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
@@ -1329,7 +1329,7 @@ bool_exp:       integer_exp ADD integer_exp             {
 
                                                 bufIndex++;
                                                 }   
-                | integer_exp OR integer_exp    {
+                | bool_exp OR bool_exp    {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
@@ -1354,7 +1354,7 @@ bool_exp:       integer_exp ADD integer_exp             {
 
                                                 bufIndex++;
                                                 }
-                | integer_exp LESS integer_exp    {
+                | bool_exp LESS bool_exp    {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
@@ -1383,7 +1383,7 @@ bool_exp:       integer_exp ADD integer_exp             {
 
                                                 bufIndex++;
                                                 }
-                | integer_exp LE integer_exp    {
+                | bool_exp LE bool_exp    {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
@@ -1412,7 +1412,7 @@ bool_exp:       integer_exp ADD integer_exp             {
 
                                                 bufIndex++;
                                                 }
-                | integer_exp E integer_exp     {
+                | bool_exp E bool_exp     {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
@@ -1441,7 +1441,7 @@ bool_exp:       integer_exp ADD integer_exp             {
 
                                                 bufIndex++;
                                                 }
-                | integer_exp GE integer_exp    {
+                | bool_exp GE bool_exp    {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
@@ -1470,7 +1470,7 @@ bool_exp:       integer_exp ADD integer_exp             {
 
                                                 bufIndex++;
                                                 }
-                | integer_exp GREATER integer_exp   {
+                | bool_exp GREATER bool_exp   {
                                                     list_t* t1 = lookup($1);
                                                     list_t* t2 = lookup($3);
                                                     
@@ -1499,7 +1499,7 @@ bool_exp:       integer_exp ADD integer_exp             {
 
                                                     bufIndex++;
                                                     }
-                | integer_exp NE integer_exp    {
+                | bool_exp NE bool_exp    {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
@@ -1527,6 +1527,24 @@ bool_exp:       integer_exp ADD integer_exp             {
                                                 Num(BOOLEXP);
 
                                                 bufIndex++;
+                                                }
+                | ID                            {
+                                                list_t* t = lookup($1);
+                                                if (t->st_type == INT_TYPE || t->st_type == CONST_INT_TYPE)
+                                                {
+                                                    char b[STRSIZE];
+
+                                                    $$ = strdup(t->st_name);
+
+                                                    
+                                                }
+                                                else
+                                                {
+                                                    Trace("line %d: The type does not match.\n", linenum);
+                                                }
+                                                }
+                | INTEGER                       {
+                                                    $$ = strdup($1);
                                                 }
                 | TRUE                          {
                                                 char l[STRSIZE];

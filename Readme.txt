@@ -19,6 +19,7 @@ make 之後會產生執行檔 gen 代表 generator
 我的C main func有直接執行兩行system() 指令，所以理論上不用助教自己
 ./javaa *.jasm
 java *.class
+因為我資料夾裡有放javaa executable，然後助教的伺服器有JVM，老師的應該也有吧？？
 
 parser.y 裡將除了integer-type 之外的變數文法都刪掉了
 就如proj3.pdf 裡所給予的限制去做修改
