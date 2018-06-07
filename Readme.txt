@@ -16,7 +16,9 @@ make 之後會產生執行檔 gen 代表 generator
 
 如此一來，就會產生.jasm檔案可以在linux環境在透過javaa轉成.class正確以JVM執行
 
-啊，我本來是想直接看能不能把.class用 make 的方式直接產生，好像是不行，所以就要麻煩助教辛苦點自己產生一下
+我的C main func有直接執行兩行system() 指令，所以理論上不用助教自己
+./javaa *.jasm
+java *.class
 
 parser.y 裡將除了integer-type 之外的變數文法都刪掉了
 就如proj3.pdf 裡所給予的限制去做修改

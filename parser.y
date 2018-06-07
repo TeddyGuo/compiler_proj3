@@ -2598,7 +2598,7 @@ int main(int argc, char** argv)
 
     fclose(yyin);                       /* close input file */
     char line[STRSIZE];
-    List("\n/* "); fprintf(javaa, "%s", itos(linenum-1, line)); List(": } */"); // end of rust file
+    // List("\n/* "); fprintf(javaa, "%s", itos(linenum-1, line)); List(": } */"); // end of rust file
     List("\n}\n");                      /* close the class */
 
     fclose(javaa);                      /* close the javaa */
@@ -2609,6 +2609,21 @@ int main(int argc, char** argv)
     dump(yyout);
     fclose(yyout);
     fclose(local_tab);
+
+    printf("\n");
+
+    /* execute javaa */
+    char exe[STRSIZE] = "./javaa ";
+    strcat(exe, filename);
+    system(exe);
+
+    printf("\n");
+
+    /* execute java */
+    printf("*\tResult of %s.class: \n\n", file);
+    char class[STRSIZE] = "java ";
+    strcat(class, file);
+    system(class);
 
     return 0;
 }
