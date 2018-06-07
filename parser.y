@@ -1889,7 +1889,7 @@ integer_exps:   integer_exps ADD integer_exps             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
+                                                // judge(t1, t2, file, arg, $1, $3);
 
                                                 Write("    iand\n");
 
@@ -1914,7 +1914,7 @@ integer_exps:   integer_exps ADD integer_exps             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
+                                                // judge(t1, t2, file, arg, $1, $3);
  
                                                 Write("    ior\n");
 
@@ -2126,7 +2126,7 @@ else_integer_exps:   else_integer_exps ADD else_integer_exps             {
                                                         $$ = strdup(itos(sum, b));
 
                                                         // put mark for buffer
-                                                        Num(NORMAL);
+                                                        Num(ELSEST);
 
                                                         bufIndex++;
                                                         }
@@ -2146,7 +2146,7 @@ else_integer_exps:   else_integer_exps ADD else_integer_exps             {
                                                         $$ = strdup(itos(sum, b));
 
                                                         // put mark for buffer
-                                                        Num(NORMAL);
+                                                        Num(ELSEST);
 
                                                         bufIndex++;
                                                         }
@@ -2166,7 +2166,7 @@ else_integer_exps:   else_integer_exps ADD else_integer_exps             {
                                                         $$ = strdup(itos(sum, b));
 
                                                         // put mark for buffer
-                                                        Num(NORMAL);
+                                                        Num(ELSEST);
 
                                                         bufIndex++;
                                                         }
@@ -2190,7 +2190,7 @@ else_integer_exps:   else_integer_exps ADD else_integer_exps             {
                                                         }
 
                                                         // put mark for buffer
-                                                        Num(NORMAL);
+                                                        Num(ELSEST);
 
                                                         bufIndex++;
                                                         }
@@ -2210,7 +2210,7 @@ else_integer_exps:   else_integer_exps ADD else_integer_exps             {
                                                         $$ = itos(sum, b);
 
                                                         // put mark for buffer
-                                                        Num(NORMAL);
+                                                        Num(ELSEST);
 
                                                         bufIndex++;
                                                         }
@@ -2269,7 +2269,7 @@ else_integer_exps:   else_integer_exps ADD else_integer_exps             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(ELSEST);
 
                                                 bufIndex++;
                                                 }
@@ -2277,7 +2277,7 @@ else_integer_exps:   else_integer_exps ADD else_integer_exps             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
+                                                // judge(t1, t2, file, arg, $1, $3);
 
                                                 Write("    iand\n");
 
@@ -2294,7 +2294,7 @@ else_integer_exps:   else_integer_exps ADD else_integer_exps             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(ELSEST);
 
                                                 bufIndex++;
                                                 }   
@@ -2302,7 +2302,7 @@ else_integer_exps:   else_integer_exps ADD else_integer_exps             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
+                                                // judge(t1, t2, file, arg, $1, $3);
  
                                                 Write("    ior\n");
 
@@ -2319,7 +2319,7 @@ else_integer_exps:   else_integer_exps ADD else_integer_exps             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(ELSEST);
 
                                                 bufIndex++;
                                                 }
@@ -2348,7 +2348,7 @@ else_integer_exps:   else_integer_exps ADD else_integer_exps             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(ELSEST);
 
                                                 bufIndex++;
                                                 }
@@ -2377,7 +2377,7 @@ else_integer_exps:   else_integer_exps ADD else_integer_exps             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(ELSEST);
 
                                                 bufIndex++;
                                                 }
@@ -2406,7 +2406,7 @@ else_integer_exps:   else_integer_exps ADD else_integer_exps             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(ELSEST);
 
                                                 bufIndex++;
                                                 }
@@ -2435,7 +2435,7 @@ else_integer_exps:   else_integer_exps ADD else_integer_exps             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(ELSEST);
 
                                                 bufIndex++;
                                                 }
@@ -2464,7 +2464,7 @@ else_integer_exps:   else_integer_exps ADD else_integer_exps             {
                                                     }
 
                                                     // put mark for buffer
-                                                    Num(NORMAL);
+                                                    Num(ELSEST);
 
                                                     bufIndex++;
                                                     }
@@ -2493,7 +2493,7 @@ else_integer_exps:   else_integer_exps ADD else_integer_exps             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(ELSEST);
 
                                                 bufIndex++;
                                                 }
@@ -2514,7 +2514,7 @@ bool_exps:   bool_exps ADD bool_exps             {
                                                         $$ = strdup(itos(sum, b));
 
                                                         // put mark for buffer
-                                                        Num(NORMAL);
+                                                        Num(BOOLEXP);
 
                                                         bufIndex++;
                                                         }
@@ -2534,7 +2534,7 @@ bool_exps:   bool_exps ADD bool_exps             {
                                                         $$ = strdup(itos(sum, b));
 
                                                         // put mark for buffer
-                                                        Num(NORMAL);
+                                                        Num(BOOLEXP);
 
                                                         bufIndex++;
                                                         }
@@ -2554,7 +2554,7 @@ bool_exps:   bool_exps ADD bool_exps             {
                                                         $$ = strdup(itos(sum, b));
 
                                                         // put mark for buffer
-                                                        Num(NORMAL);
+                                                        Num(BOOLEXP);
 
                                                         bufIndex++;
                                                         }
@@ -2578,7 +2578,7 @@ bool_exps:   bool_exps ADD bool_exps             {
                                                         }
 
                                                         // put mark for buffer
-                                                        Num(NORMAL);
+                                                        Num(BOOLEXP);
 
                                                         bufIndex++;
                                                         }
@@ -2598,7 +2598,7 @@ bool_exps:   bool_exps ADD bool_exps             {
                                                         $$ = itos(sum, b);
 
                                                         // put mark for buffer
-                                                        Num(NORMAL);
+                                                        Num(BOOLEXP);
 
                                                         bufIndex++;
                                                         }
@@ -2657,7 +2657,7 @@ bool_exps:   bool_exps ADD bool_exps             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(BOOLEXP);
 
                                                 bufIndex++;
                                                 }
@@ -2665,7 +2665,7 @@ bool_exps:   bool_exps ADD bool_exps             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
+                                                // judge(t1, t2, file, arg, $1, $3);
 
                                                 Write("    iand\n");
 
@@ -2682,7 +2682,7 @@ bool_exps:   bool_exps ADD bool_exps             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(BOOLEXP);
 
                                                 bufIndex++;
                                                 }   
@@ -2690,7 +2690,7 @@ bool_exps:   bool_exps ADD bool_exps             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
+                                                // judge(t1, t2, file, arg, $1, $3);
  
                                                 Write("    ior\n");
 
@@ -2707,7 +2707,7 @@ bool_exps:   bool_exps ADD bool_exps             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(BOOLEXP);
 
                                                 bufIndex++;
                                                 }
@@ -2736,7 +2736,7 @@ bool_exps:   bool_exps ADD bool_exps             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(BOOLEXP);
 
                                                 bufIndex++;
                                                 }
@@ -2765,7 +2765,7 @@ bool_exps:   bool_exps ADD bool_exps             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(BOOLEXP);
 
                                                 bufIndex++;
                                                 }
@@ -2794,7 +2794,7 @@ bool_exps:   bool_exps ADD bool_exps             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(BOOLEXP);
 
                                                 bufIndex++;
                                                 }
@@ -2823,7 +2823,7 @@ bool_exps:   bool_exps ADD bool_exps             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(BOOLEXP);
 
                                                 bufIndex++;
                                                 }
@@ -2852,7 +2852,7 @@ bool_exps:   bool_exps ADD bool_exps             {
                                                     }
 
                                                     // put mark for buffer
-                                                    Num(NORMAL);
+                                                    Num(BOOLEXP);
 
                                                     bufIndex++;
                                                     }
@@ -2881,7 +2881,7 @@ bool_exps:   bool_exps ADD bool_exps             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                Num(BOOLEXP);
 
                                                 bufIndex++;
                                                 }
