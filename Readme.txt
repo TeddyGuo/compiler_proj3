@@ -37,6 +37,10 @@ parser.y 裡將除了integer-type 之外的變數文法都刪掉了
 
 依然合法，除了float-type constant declaration
 
+很淒慘的是我沒有做出像a = 10 + 10 + 10 這種連加的語法，所以||, &&, and !，雖然java assembler不會報錯，但是結果錯
+。我可能也不會多做這些operators的連續語法，因為我很佛系，所以隨緣，助教打成績不要隨緣就好
+不過基本的四個測資當然都沒問題
+
 scanner.l 多了一個char array 存rust檔案裡的內容，然後最後這些會被當作註解寫在
 jasm檔案裡
 
