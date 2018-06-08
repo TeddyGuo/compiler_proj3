@@ -64,6 +64,7 @@ Add integer_exp, else_integer_exp, and bool_exp
 
 June 08, 2018
 Delete integer_exp, else_integer_exp, and bool_exp
+Deal with counter when a func is over
 */
 %{
 #include "symbols.c"
@@ -101,11 +102,16 @@ Delete integer_exp, else_integer_exp, and bool_exp
 #define BOOLEXP 1
 #define ELSEST 2
 
+#define ORSIGN    1
+#define ANDSIGN   2
+#define EXCLASIGN 3
+
 extern FILE* yyin;
 extern FILE* yyout;
 extern int linenum;
 extern int yylex();
 extern char buf[256];
+extern int counter;
 
 FILE* javaa;        //file for bytecode
 FILE* local_tab;    // local_var output file
@@ -121,6 +127,8 @@ int L = 0; // stage counter
 
 char local_var[STRSIZE][STRSIZE]; // record the local variables
 int local_counter[STRSIZE]; // record the local values
+
+int sign = 0; // OR = 1, AND = 2, EXCLAMATION = 3
 
 void yyerror(char* msg);
 void judge(list_t*, list_t*, char*, char arg[STRSIZE][STRSIZE], char*, char*); // judge should Write what king of sentences into file
@@ -558,6 +566,8 @@ function:       FN ID fn_start R_BRACE fn_block                     {
 
                                                                         List("    return\n");
                                                                         List("  }");
+
+                                                                        counter = 0; // reset counter when a func is over
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                     }
@@ -599,6 +609,8 @@ function:       FN ID fn_start R_BRACE fn_block                     {
 
                                                                         //clear argument table after exit current func
                                                                         for(int i = 0; i < STRSIZE; i++) arg[i][0] = '\0';
+
+                                                                        counter = 0; // reset counter when a func is over
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                     }
@@ -625,6 +637,8 @@ function:       FN ID fn_start R_BRACE fn_block                     {
                                                                         }
                                                                         
                                                                         List("  }");
+
+                                                                        counter = 0; // reset counter when a func is over
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                     }
@@ -667,6 +681,8 @@ function:       FN ID fn_start R_BRACE fn_block                     {
 
                                                                                 //clear argument table after exit current func
                                                                                 for(int i = 0; i < STRSIZE; i++) arg[i][0] = '\0';
+
+                                                                                counter = 0; // reset counter when a func is over
                                                                             }
                                                                             else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                             }
@@ -737,6 +753,11 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
 
                                                                         if (t->glob_flag == 1)
                                                                         {
+                                                                            if (t->neg == 1)
+                                                                            {
+                                                                                t->neg = 0;
+                                                                                Write("    ineg\n");
+                                                                            }
                                                                             Write("    putstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                                         }
                                                                         else
@@ -882,6 +903,11 @@ else_statement: ID ASSIGN else_integer_exp SEMICOLON                {
 
                                                                         if (t->glob_flag == 1)
                                                                         {
+                                                                            if (t->neg == 1)
+                                                                            {
+                                                                                t->neg = 0;
+                                                                                Write("    ineg\n");
+                                                                            }
                                                                             Write("    putstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                                         }
                                                                         else
@@ -1036,6 +1062,18 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE else_block    {
                                                                 }
                                                                 else {
                                                                     for (m = k + 1; m <= i; m++) strcat(str, buffer[m]);
+
+                                                                    if (sign == 1)
+                                                                    {
+                                                                        strcat(str, "    ior\n");
+                                                                    }
+                                                                    else if (sign == 2)
+                                                                    {
+                                                                        strcat(str, "    iand\n");
+                                                                    }
+                                                                    sign = 0; // reset sign flag
+
+                                                                    strcat(str, "    iconst_0\n");
                                                                     strcat(str, "    goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
                                                                     strcat(str, "  L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                     strcat(str, "    iconst_1\n");
@@ -1088,6 +1126,18 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE else_block    {
                                                                 else
                                                                 {
                                                                     for (k = j + 1; k <= i; k++) strcat(str, buffer[k]);
+
+                                                                    if (sign == 1)
+                                                                    {
+                                                                        strcat(str, "    ior\n");
+                                                                    }
+                                                                    else if (sign == 2)
+                                                                    {
+                                                                        strcat(str, "    iand\n");
+                                                                    }
+                                                                    sign = 0; // reset sign flag
+
+                                                                    strcat(str, "    iconst_0\n");
                                                                     strcat(str, "    goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
                                                                     strcat(str, "  L"); strcat(str, itos(L++, l)); strcat(str, ":\n");
                                                                     strcat(str, "    iconst_1\n");
@@ -1130,6 +1180,18 @@ loop:           WHILE L_BRACE bool_exp R_BRACE block    {
                                                         int Lexit = L + 3;
                                                         strcat(str, "  L"); strcat(str, itos(Lbegin, l)); strcat(str, ":\n");
                                                         for (k = j + 1; k <= i; k++) strcat(str, buffer[k]);
+
+                                                        if (sign == 1)
+                                                        {
+                                                            strcat(str, "    ior\n");
+                                                        }
+                                                        else if (sign == 2)
+                                                        {
+                                                            strcat(str, "    iand\n");
+                                                        }
+                                                        sign = 0; // reset sign flag
+
+                                                        strcat(str, "    iconst_0\n");
                                                         strcat(str, "    goto L"); strcat(str, itos(Lfalse, l)); strcat(str, "\n");
                                                         strcat(str, "  L"); strcat(str, itos(Ltrue, l)); strcat(str, ":\n");
                                                         strcat(str, "    iconst_1\n");
@@ -1278,7 +1340,7 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                         }
                 | EXCLAMATION bool_exp       {
                                                 list_t* t = lookup($2);
-                                                if (t != NULL && t->glob_flag == 1 && arg[t->counter] == NULL)
+                                                if (t != NULL && t->glob_flag == 1)
                                                 {
                                                     Write("    getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                 }
@@ -1314,9 +1376,9 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
+                                                // judge(t1, t2, file, arg, $1, $3);
 
-                                                Write("    iand\n");
+                                                sign = 2;
 
                                                 // return part
                                                 int i, j;
@@ -1331,17 +1393,17 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(BOOLEXP);
+                                                // Num(BOOLEXP);
 
-                                                bufIndex++;
+                                                // bufIndex++;
                                                 }   
-                | bool_exp OR bool_exp    {
+                | bool_exp OR bool_exp          {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
+                                                // judge(t1, t2, file, arg, $1, $3);
  
-                                                Write("    ior\n");
+                                                sign = 1;
 
                                                 // return part
                                                 int i, j;
@@ -1356,9 +1418,9 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(BOOLEXP);
+                                                // Num(BOOLEXP);
 
-                                                bufIndex++;
+                                                // bufIndex++;
                                                 }
                 | bool_exp LESS bool_exp    {
                                                 list_t* t1 = lookup($1);
@@ -1369,7 +1431,7 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
                                                 Write("    iflt L"); Write(itos(L, l)); Write("\n");
-                                                Write("    iconst_0\n");
+                                                // Write("    iconst_0\n");
                                                 
                                                                                 
                                                 // return part
@@ -1398,7 +1460,7 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
                                                 Write("    ifle L"); Write(itos(L, l)); Write("\n");
-                                                Write("    iconst_0\n");
+                                                // Write("    iconst_0\n");
 
 
                                                 // return part
@@ -1427,7 +1489,7 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
                                                 Write("    ifeq L"); Write(itos(L, l)); Write("\n");
-                                                Write("    iconst_0\n");
+                                                // Write("    iconst_0\n");
                                                 
 
                                                 // return part
@@ -1456,7 +1518,7 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
                                                 Write("    ifge L"); Write(itos(L, l)); Write("\n");
-                                                Write("    iconst_0\n");
+                                                // Write("    iconst_0\n");
                                                 
 
                                                 // return part
@@ -1485,7 +1547,7 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                     Write("    isub\n");
                                                     char l[STRSIZE];
                                                     Write("    ifgt L"); Write(itos(L, l)); Write("\n");
-                                                    Write("    iconst_0\n");
+                                                    // Write("    iconst_0\n");
                                                     
 
                                                     // return part
@@ -1514,7 +1576,7 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
                                                 Write("    ifne L"); Write(itos(L, l)); Write("\n");
-                                                Write("    iconst_0\n");
+                                                // Write("    iconst_0\n");
                                                 
 
                                                 // return part
@@ -1855,7 +1917,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         }
                 | EXCLAMATION integer_exp       {
                                                 list_t* t = lookup($2);
-                                                if (t != NULL && t->glob_flag == 1 && arg[t->counter] == NULL)
+                                                if (t != NULL && t->glob_flag == 1)
                                                 {
                                                     Write("    getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                 }
@@ -1891,9 +1953,9 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
+                                                // judge(t1, t2, file, arg, $1, $3);
 
-                                                Write("    iand\n");
+                                                sign = 2;
 
                                                 // return part
                                                 int i, j;
@@ -1908,17 +1970,17 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                // Num(NORMAL);
 
-                                                bufIndex++;
+                                                // bufIndex++;
                                                 }   
                 | integer_exp OR integer_exp    {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
+                                                // judge(t1, t2, file, arg, $1, $3);
  
-                                                Write("    ior\n");
+                                                sign = 1;
 
                                                 // return part
                                                 int i, j;
@@ -1933,9 +1995,9 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(NORMAL);
+                                                // Num(NORMAL);
 
-                                                bufIndex++;
+                                                // bufIndex++;
                                                 }
                 | integer_exp LESS integer_exp  {
                                                 list_t* t1 = lookup($1);
@@ -1946,7 +2008,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
                                                 Write("    iflt L"); Write(itos(L, l)); Write("\n");
-                                                Write("    iconst_0\n");
+                                                // Write("    iconst_0\n");
                                                 
                                                                                 
                                                 // return part
@@ -1975,7 +2037,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
                                                 Write("    ifle L"); Write(itos(L, l)); Write("\n");
-                                                Write("    iconst_0\n");
+                                                // Write("    iconst_0\n");
 
 
                                                 // return part
@@ -2004,7 +2066,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
                                                 Write("    ifeq L"); Write(itos(L, l)); Write("\n");
-                                                Write("    iconst_0\n");
+                                                // rite("    iconst_0\n");
                                                 
 
                                                 // return part
@@ -2033,7 +2095,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
                                                 Write("    ifge L"); Write(itos(L, l)); Write("\n");
-                                                Write("    iconst_0\n");
+                                                // Write("    iconst_0\n");
                                                 
 
                                                 // return part
@@ -2062,7 +2124,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                     Write("    isub\n");
                                                     char l[STRSIZE];
                                                     Write("    ifgt L"); Write(itos(L, l)); Write("\n");
-                                                    Write("    iconst_0\n");
+                                                    // Write("    iconst_0\n");
                                                     
 
                                                     // return part
@@ -2091,7 +2153,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
                                                 Write("    ifne L"); Write(itos(L, l)); Write("\n");
-                                                Write("    iconst_0\n");
+                                                // Write("    iconst_0\n");
                                                 
 
                                                 // return part
@@ -2271,7 +2333,7 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                         }
                 | EXCLAMATION else_integer_exp  {
                                                 list_t* t = lookup($2);
-                                                if (t != NULL && t->glob_flag == 1 && arg[t->counter] == NULL)
+                                                if (t != NULL && t->glob_flag == 1)
                                                 {
                                                     Write("    getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                 }
@@ -2307,9 +2369,9 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
+                                                // judge(t1, t2, file, arg, $1, $3);
 
-                                                Write("    iand\n");
+                                                sign = 2;
 
                                                 // return part
                                                 int i, j;
@@ -2324,17 +2386,17 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                Num(ELSEST);
+                                                // Num(ELSEST);
 
-                                                bufIndex++;
+                                                // bufIndex++;
                                                 }   
                 | else_integer_exp OR else_integer_exp  {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
                                                         
-                                                        judge(t1, t2, file, arg, $1, $3);
+                                                        // judge(t1, t2, file, arg, $1, $3);
 
-                                                        Write("    ior\n");
+                                                        sign = 1;
 
                                                         // return part
                                                         int i, j;
@@ -2349,9 +2411,9 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                         }
 
                                                         // put mark for buffer
-                                                        Num(ELSEST);
+                                                        // Num(ELSEST);
 
-                                                        bufIndex++;
+                                                        // bufIndex++;
                                                         }
                 | else_integer_exp LESS else_integer_exp  {
                                                 list_t* t1 = lookup($1);
@@ -2362,7 +2424,7 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
                                                 Write("    iflt L"); Write(itos(L, l)); Write("\n");
-                                                Write("    iconst_0\n");
+                                                // Write("    iconst_0\n");
                                                 
                                                                                 
                                                 // return part
@@ -2391,7 +2453,7 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
                                                 Write("    ifle L"); Write(itos(L, l)); Write("\n");
-                                                Write("    iconst_0\n");
+                                                // Write("    iconst_0\n");
 
 
                                                 // return part
@@ -2420,7 +2482,7 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
                                                 Write("    ifeq L"); Write(itos(L, l)); Write("\n");
-                                                Write("    iconst_0\n");
+                                                // Write("    iconst_0\n");
                                                 
 
                                                 // return part
@@ -2449,7 +2511,7 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
                                                 Write("    ifge L"); Write(itos(L, l)); Write("\n");
-                                                Write("    iconst_0\n");
+                                                // Write("    iconst_0\n");
                                                 
 
                                                 // return part
@@ -2478,7 +2540,7 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                     Write("    isub\n");
                                                     char l[STRSIZE];
                                                     Write("    ifgt L"); Write(itos(L, l)); Write("\n");
-                                                    Write("    iconst_0\n");
+                                                    // Write("    iconst_0\n");
                                                     
 
                                                     // return part
@@ -2507,7 +2569,7 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
                                                 Write("    ifne L"); Write(itos(L, l)); Write("\n");
-                                                Write("    iconst_0\n");
+                                                // Write("    iconst_0\n");
                                                 
 
                                                 // return part
