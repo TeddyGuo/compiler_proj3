@@ -38,6 +38,10 @@ parser.y 裡將除了integer-type 之外的變數文法都刪掉了
 依然合法，除了float-type constant declaration
 
 ||, &&, and !，現在產生的語法不對，希望我解決得了。
+
+** June 12, 2018
+終於有點起色，現在像 10 && 1 這種可以正確運作了，不過 (c < 10) || (c > 10) 這種還要處理
+
 不過基本的四個測資當然都沒問題
 
 scanner.l 多了一個char array 存rust檔案裡的內容，然後最後這些會被當作註解寫在

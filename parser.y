@@ -1080,16 +1080,20 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE else_block    {
                                                                         if (sign == 1)
                                                                         {
                                                                             strcat(str, "    ior\n");
+                                                                            strcat(str, "    ifne L"); strcat(str, itos(L, l)); strcat(str, "\n");
                                                                         }
                                                                         else if (sign == 2)
                                                                         {
                                                                             strcat(str, "    iand\n");
+                                                                            strcat(str, "    ifne L"); strcat(str, itos(L, l)); strcat(str, "\n");
                                                                         }
                                                                         else if (sign == EXCLASIGN)
                                                                         {
+                                                                            strcat(str, "    iconst_0\n");
                                                                             strcat(str, "    ixor\n");
+                                                                            strcat(str, "    ifeq L"); strcat(str, itos(L, l)); strcat(str, "\n");
                                                                         }
-                                                                        strcat(str, "    ifeq L"); strcat(str, itos(Ltrue, l)); strcat(str, "\n");
+                                                                        
                                                                         sign = 0; // reset sign flag
                                                                     }
 
@@ -1152,16 +1156,21 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE else_block    {
                                                                         if (sign == 1)
                                                                         {
                                                                             strcat(str, "    ior\n");
+                                                                            strcat(str, "    ifne L"); strcat(str, itos(L, l)); strcat(str, "\n");
                                                                         }
                                                                         else if (sign == 2)
                                                                         {
                                                                             strcat(str, "    iand\n");
+                                                                            strcat(str, "    ifne L"); strcat(str, itos(L, l)); strcat(str, "\n");
                                                                         }
                                                                         else if (sign == EXCLASIGN)
                                                                         {
+                                                                            strcat(str, "    iconst_0\n");
                                                                             strcat(str, "    ixor\n");
+                                                                            strcat(str, "    ifeq L"); strcat(str, itos(L, l)); strcat(str, "\n");
                                                                         }
-                                                                        strcat(str, "    ifeq L"); strcat(str, itos(Ltrue, l)); strcat(str, "\n");
+                                                                        
+                                                                        
                                                                         sign = 0; // reset sign flag
                                                                     }
 
@@ -1214,16 +1223,21 @@ loop:           WHILE L_BRACE bool_exp R_BRACE block    {
                                                             if (sign == 1)
                                                             {
                                                                 strcat(str, "    ior\n");
+                                                                strcat(str, "    ifne L"); strcat(str, itos(L, l)); strcat(str, "\n");
                                                             }
                                                             else if (sign == 2)
                                                             {
                                                                 strcat(str, "    iand\n");
+                                                                strcat(str, "    ifne L"); strcat(str, itos(L, l)); strcat(str, "\n");
                                                             }
                                                             else if (sign == EXCLASIGN)
                                                             {
+                                                                strcat(str, "    iconst_0\n");
                                                                 strcat(str, "    ixor\n");
+                                                                strcat(str, "    ifeq L"); strcat(str, itos(L, l)); strcat(str, "\n");
                                                             }
-                                                            strcat(str, "    ifeq L"); strcat(str, itos(Ltrue, l)); strcat(str, "\n");
+                                                            
+                                                            
                                                             sign = 0; // reset sign flag
                                                         }
 
@@ -1415,7 +1429,7 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                // judge(t1, t2, file, arg, $1, $3);
+                                                judge(t1, t2, file, arg, $1, $3);
 
                                                 sign = ANDSIGN;
 
@@ -1432,15 +1446,15 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                // Num(BOOLEXP);
+                                                Num(BOOLEXP);
 
-                                                // bufIndex++;
+                                                bufIndex++;
                                                 }   
                 | bool_exp OR bool_exp          {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                // judge(t1, t2, file, arg, $1, $3);
+                                                judge(t1, t2, file, arg, $1, $3);
  
                                                 sign = ORSIGN;
 
@@ -1457,9 +1471,9 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                // Num(BOOLEXP);
+                                                Num(BOOLEXP);
 
-                                                // bufIndex++;
+                                                bufIndex++;
                                                 }
                 | bool_exp LESS bool_exp    {
                                                 list_t* t1 = lookup($1);
@@ -1969,6 +1983,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 {
                                                     Write("    sipush "); Write($2); Write("\n");
                                                 }
+                                                Write("    iconst_0\n");
                                                 Write("    ixor\n");
 
                                                 // return part
@@ -1992,9 +2007,9 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                // judge(t1, t2, file, arg, $1, $3);
+                                                judge(t1, t2, file, arg, $1, $3);
 
-                                                sign = 2;
+                                                Write("    iand\n");
 
                                                 // return part
                                                 int i, j;
@@ -2009,17 +2024,17 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                // Num(NORMAL);
+                                                Num(NORMAL);
 
-                                                // bufIndex++;
+                                                bufIndex++;
                                                 }   
                 | integer_exp OR integer_exp    {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                // judge(t1, t2, file, arg, $1, $3);
+                                                judge(t1, t2, file, arg, $1, $3);
  
-                                                sign = 1;
+                                                Write("    ior\n");
 
                                                 // return part
                                                 int i, j;
@@ -2034,9 +2049,9 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                // Num(NORMAL);
+                                                Num(NORMAL);
 
-                                                // bufIndex++;
+                                                bufIndex++;
                                                 }
                 | integer_exp LESS integer_exp  {
                                                 list_t* t1 = lookup($1);
@@ -2385,6 +2400,7 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                 {
                                                     Write("    sipush "); Write($2); Write("\n");
                                                 }
+                                                Write("    iconst_0\n");
                                                 Write("    ixor\n");
 
                                                 // return part
@@ -2408,9 +2424,9 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                // judge(t1, t2, file, arg, $1, $3);
+                                                judge(t1, t2, file, arg, $1, $3);
 
-                                                sign = 2;
+                                                Write("    iand\n");
 
                                                 // return part
                                                 int i, j;
@@ -2425,17 +2441,17 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                 }
 
                                                 // put mark for buffer
-                                                // Num(ELSEST);
+                                                Num(ELSEST);
 
-                                                // bufIndex++;
+                                                bufIndex++;
                                                 }   
                 | else_integer_exp OR else_integer_exp  {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
                                                         
-                                                        // judge(t1, t2, file, arg, $1, $3);
+                                                        judge(t1, t2, file, arg, $1, $3);
 
-                                                        sign = 1;
+                                                        Write("    ior\n");
 
                                                         // return part
                                                         int i, j;
@@ -2450,9 +2466,9 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                         }
 
                                                         // put mark for buffer
-                                                        // Num(ELSEST);
+                                                        Num(ELSEST);
 
-                                                        // bufIndex++;
+                                                        bufIndex++;
                                                         }
                 | else_integer_exp LESS else_integer_exp  {
                                                 list_t* t1 = lookup($1);
@@ -2774,6 +2790,28 @@ void judge(list_t* t1, list_t* t2, char* file, char arg[STRSIZE][STRSIZE], char*
     cat[0] = '\0';
 	char a[SIZE];
 
+    short flag1 = 1, flag3 = 1;
+    int i = 0;
+    while ($1[i] != '\0')
+    {
+        if (!isdigit($1[i]))
+        {
+            flag1 = 0;
+            break;
+        }
+        i++;
+    }
+    i = 0;
+    while ($3[i] != '\0')
+    {
+        if (!isdigit($3[i]))
+        {
+            flag3 = 0;
+            break;
+        }
+        i++;
+    }
+
 	if (t1 != NULL && t1->glob_flag == 1 && t2 != NULL && t2->glob_flag == 1)
 	{
 		strcat(cat, "    getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t1->st_name); strcat(cat, "\n");
@@ -2789,12 +2827,12 @@ void judge(list_t* t1, list_t* t2, char* file, char arg[STRSIZE][STRSIZE], char*
 		strcat(cat, "    iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
 		strcat(cat, "    getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t2->st_name); strcat(cat, "\n");
 	}
-	else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && strlen($3) <= 2)
+	else if (t1 != NULL && t1->glob_flag == 1 && t2 == NULL && flag3 == 1 ) 
 	{
 		strcat(cat, "    getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t1->st_name); strcat(cat, "\n");
 		strcat(cat, "    sipush "); strcat(cat, $3); strcat(cat, "\n");
 	}
-	else if (t1 == NULL && strlen($1) <= 2 && t2 != NULL && t2->glob_flag == 1 && t2->scope == 0)
+	else if (t1 == NULL && flag1 == 1 && t2 != NULL && t2->glob_flag == 1 && t2->scope == 0)
 	{
 		strcat(cat, "    sipush "); strcat(cat, $1); strcat(cat, "\n");
 		strcat(cat, "    getstatic int "); strcat(cat, file); strcat(cat, "."); strcat(cat, t2->st_name); strcat(cat, "\n");
@@ -2814,17 +2852,17 @@ void judge(list_t* t1, list_t* t2, char* file, char arg[STRSIZE][STRSIZE], char*
 		strcat(cat, "    iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
         strcat(cat, "    sipush "); strcat(cat, t2->st_sval); strcat(cat, "\n");
     }
-	else if (t1 != NULL && t2 == NULL && strlen($3) <= 2)
+	else if (t1 != NULL && t2 == NULL && flag3 == 1 )
 	{
 		strcat(cat, "    iload "); strcat(cat, itos(t1->counter, a)); strcat(cat, "\n");
 		strcat(cat, "    sipush "); strcat(cat, $3); strcat(cat, "\n");
 	}
-	else if (t1 == NULL && strlen($1) <= 2 && t2 != NULL)
+	else if (t1 == NULL && flag1 == 1 && t2 != NULL)
 	{
 		strcat(cat, "    sipush "); strcat(cat, $1); strcat(cat, "\n");
 		strcat(cat, "    iload "); strcat(cat, itos(t2->counter, a)); strcat(cat, "\n");
 	}
-	else if (t1 == NULL && strlen($1) <= 2 && t2 == NULL && strlen($3) <= 2)
+	else if (t1 == NULL && flag1 == 1 && t2 == NULL && flag3 == 1 )
 	{
 		strcat(cat, "    sipush "); strcat(cat, t1->st_sval); strcat(cat, "\n");
 		strcat(cat, "    sipush "); strcat(cat, t2->st_sval); strcat(cat, "\n");
