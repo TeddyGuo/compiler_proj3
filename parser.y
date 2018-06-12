@@ -65,6 +65,10 @@ Add integer_exp, else_integer_exp, and bool_exp
 June 08, 2018
 Delete integer_exp, else_integer_exp, and bool_exp
 Deal with counter when a func is over
+
+June 12, 2018
+ixor in the bool_exp add more contents
+bool_exp should be rewritten since the comparison should add in the if stmt, if-else stmt, and while stmt.
 */
 %{
 #include "symbols.c"
@@ -106,6 +110,13 @@ Deal with counter when a func is over
 #define ANDSIGN   2
 #define EXCLASIGN 3
 
+#define IFGT 1
+#define IFLT 2
+#define IFGE 3
+#define IFLE 4
+#define IFEQ 5
+#define IFNE 6
+
 extern FILE* yyin;
 extern FILE* yyout;
 extern int linenum;
@@ -129,6 +140,7 @@ char local_var[STRSIZE][STRSIZE]; // record the local variables
 int local_counter[STRSIZE]; // record the local values
 
 int sign = 0; // OR = 1, AND = 2, EXCLAMATION = 3
+short ifsign = 0; // for bool_exp sign
 
 void yyerror(char* msg);
 void judge(list_t*, list_t*, char*, char arg[STRSIZE][STRSIZE], char*, char*); // judge should Write what king of sentences into file
@@ -1063,15 +1075,23 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE else_block    {
                                                                 else {
                                                                     for (m = k + 1; m <= i; m++) strcat(str, buffer[m]);
 
-                                                                    if (sign == 1)
+                                                                    if (sign != NORMAL)
                                                                     {
-                                                                        strcat(str, "    ior\n");
+                                                                        if (sign == 1)
+                                                                        {
+                                                                            strcat(str, "    ior\n");
+                                                                        }
+                                                                        else if (sign == 2)
+                                                                        {
+                                                                            strcat(str, "    iand\n");
+                                                                        }
+                                                                        else if (sign == EXCLASIGN)
+                                                                        {
+                                                                            strcat(str, "    ixor\n");
+                                                                        }
+                                                                        strcat(str, "    ifeq L"); strcat(str, itos(Ltrue, l)); strcat(str, "\n");
+                                                                        sign = 0; // reset sign flag
                                                                     }
-                                                                    else if (sign == 2)
-                                                                    {
-                                                                        strcat(str, "    iand\n");
-                                                                    }
-                                                                    sign = 0; // reset sign flag
 
                                                                     strcat(str, "    iconst_0\n");
                                                                     strcat(str, "    goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
@@ -1127,15 +1147,23 @@ conditional:    IF L_BRACE bool_exp R_BRACE block ELSE else_block    {
                                                                 {
                                                                     for (k = j + 1; k <= i; k++) strcat(str, buffer[k]);
 
-                                                                    if (sign == 1)
+                                                                    if (sign != NORMAL)
                                                                     {
-                                                                        strcat(str, "    ior\n");
+                                                                        if (sign == 1)
+                                                                        {
+                                                                            strcat(str, "    ior\n");
+                                                                        }
+                                                                        else if (sign == 2)
+                                                                        {
+                                                                            strcat(str, "    iand\n");
+                                                                        }
+                                                                        else if (sign == EXCLASIGN)
+                                                                        {
+                                                                            strcat(str, "    ixor\n");
+                                                                        }
+                                                                        strcat(str, "    ifeq L"); strcat(str, itos(Ltrue, l)); strcat(str, "\n");
+                                                                        sign = 0; // reset sign flag
                                                                     }
-                                                                    else if (sign == 2)
-                                                                    {
-                                                                        strcat(str, "    iand\n");
-                                                                    }
-                                                                    sign = 0; // reset sign flag
 
                                                                     strcat(str, "    iconst_0\n");
                                                                     strcat(str, "    goto L"); strcat(str, itos(L+1, l)); strcat(str, "\n");
@@ -1181,15 +1209,23 @@ loop:           WHILE L_BRACE bool_exp R_BRACE block    {
                                                         strcat(str, "  L"); strcat(str, itos(Lbegin, l)); strcat(str, ":\n");
                                                         for (k = j + 1; k <= i; k++) strcat(str, buffer[k]);
 
-                                                        if (sign == 1)
+                                                        if (sign != NORMAL)
                                                         {
-                                                            strcat(str, "    ior\n");
+                                                            if (sign == 1)
+                                                            {
+                                                                strcat(str, "    ior\n");
+                                                            }
+                                                            else if (sign == 2)
+                                                            {
+                                                                strcat(str, "    iand\n");
+                                                            }
+                                                            else if (sign == EXCLASIGN)
+                                                            {
+                                                                strcat(str, "    ixor\n");
+                                                            }
+                                                            strcat(str, "    ifeq L"); strcat(str, itos(Ltrue, l)); strcat(str, "\n");
+                                                            sign = 0; // reset sign flag
                                                         }
-                                                        else if (sign == 2)
-                                                        {
-                                                            strcat(str, "    iand\n");
-                                                        }
-                                                        sign = 0; // reset sign flag
 
                                                         strcat(str, "    iconst_0\n");
                                                         strcat(str, "    goto L"); strcat(str, itos(Lfalse, l)); strcat(str, "\n");
@@ -1340,7 +1376,7 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                         }
                 | EXCLAMATION bool_exp       {
                                                 list_t* t = lookup($2);
-                                                if (t != NULL && t->glob_flag == 1)
+                                                if (t != NULL && t->glob_flag == 1 && arg[t->counter] != NULL)
                                                 {
                                                     Write("    getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                 }
@@ -1353,7 +1389,10 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 {
                                                     Write("    sipush "); Write($2); Write("\n");
                                                 }
-                                                Write("    ixor\n");
+                                                sign = EXCLASIGN;
+                                                // Write("    ixor\n");
+                                                // char l[STRSIZE];
+                                                // Write("    ifeq L"); Write(itos(L, l)); Write("\n");
 
                                                 // return part
                                                 int i;
@@ -1378,7 +1417,7 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 
                                                 // judge(t1, t2, file, arg, $1, $3);
 
-                                                sign = 2;
+                                                sign = ANDSIGN;
 
                                                 // return part
                                                 int i, j;
@@ -1403,7 +1442,7 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 
                                                 // judge(t1, t2, file, arg, $1, $3);
  
-                                                sign = 1;
+                                                sign = ORSIGN;
 
                                                 // return part
                                                 int i, j;
@@ -1917,7 +1956,7 @@ integer_exp:    integer_exp ADD integer_exp             {
                                                         }
                 | EXCLAMATION integer_exp       {
                                                 list_t* t = lookup($2);
-                                                if (t != NULL && t->glob_flag == 1)
+                                                if (t != NULL && t->glob_flag == 1 && arg[t->counter] != NULL)
                                                 {
                                                     Write("    getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                 }
@@ -2333,7 +2372,7 @@ else_integer_exp:   else_integer_exp ADD else_integer_exp             {
                                                         }
                 | EXCLAMATION else_integer_exp  {
                                                 list_t* t = lookup($2);
-                                                if (t != NULL && t->glob_flag == 1)
+                                                if (t != NULL && t->glob_flag == 1 && arg[t->counter] != NULL)
                                                 {
                                                     Write("    getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
                                                 }
@@ -2699,26 +2738,31 @@ int main(int argc, char** argv)
     printf("\n");
 
     /* execute javaa */
+    
     char exe[STRSIZE] = "./javaa ";
     strcat(exe, filename);
     system(exe);
 
     printf("\n");
+    
 
     /* cat the file *.jasm */
     /*
     char cat[STRSIZE] = "cat ";
     strcat(cat, filename);
     system(cat);
-
+    */
+    /*
     printf("\n");
     */
 
     /* execute java */
+    
     printf("*\tResult of %s.class: \n\n", file);
     char class[STRSIZE] = "java ";
     strcat(class, file);
     system(class);
+    
 
     return 0;
 }
