@@ -250,7 +250,7 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
 
                                                                     }
-                        | LET ID ASSIGN bool_exp SEMICOLON          {
+                        | LET ID ASSIGN TRUE SEMICOLON              {
                                                                     list_t* t = lookup($2);
 
                                                                     if (t == NULL)
@@ -261,21 +261,29 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                         t->st_sval = strdup($4);
                                                                         t->constant = 1;
 
-                                                                        if (strcmp($4, "true") == 0)
-                                                                        {
-                                                                            Write("   iconst_1\n");
-                                                                        }
-                                                                        else if (strcmp($4, "false") == 0)
-                                                                        {
-                                                                            Write("   iconst_0\n");
-                                                                        }
-                                                                        else
-                                                                            Write("   sipush "); Write($4); Write("\n");
+                                                                        Write("   iconst_1\n");
 
                                                                         bufIndex++;
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
 
+                                                                    }
+                        | LET ID ASSIGN FALSE SEMICOLON             {
+                                                                    list_t* t = lookup($2);
+
+                                                                    if (t == NULL)
+                                                                    {
+                                                                        insert($2, strlen($2), CONST_INT_TYPE, linenum);
+                                                                        t = lookup($2);
+                                                                        t->st_ival = stoi($4);
+                                                                        t->st_sval = strdup($4);
+                                                                        t->constant = 1;
+
+                                                                        Write("   iconst_0\n");
+
+                                                                        bufIndex++;
+                                                                    }
+                                                                    else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                     }
                         | LET ID ASSIGN string_exp SEMICOLON        {
                                                                     list_t* t = lookup($2);
@@ -310,7 +318,7 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                             }
                                                                             else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                             }
-                        | LET ID COLON BOOL ASSIGN bool_exp SEMICOLON       {
+                        | LET ID COLON BOOL ASSIGN TRUE SEMICOLON           {
                                                                             list_t* t = lookup($2);
 
                                                                             if (t == NULL)
@@ -321,16 +329,24 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                                 t->st_sval = strdup($6);
                                                                                 t->constant = 1;
 
-                                                                                if (strcmp($6, "true") == 0)
-                                                                                {
-                                                                                    Write("    iconst_1\n");
-                                                                                }
-                                                                                else if (strcmp($6, "false") == 0)
-                                                                                {
-                                                                                    Write("    iconst_0\n");
-                                                                                }
-                                                                                else
-                                                                                    Write("   sipush "); Write($6); Write("\n");
+                                                                                Write("    iconst_1\n");
+
+                                                                                bufIndex++;
+                                                                            }
+                                                                            else Trace("line %d: Redeclaration of identifier.\n", linenum);
+                                                                            }
+                        | LET ID COLON BOOL ASSIGN FALSE SEMICOLON          {
+                                                                            list_t* t = lookup($2);
+
+                                                                            if (t == NULL)
+                                                                            {
+                                                                                insert($2, strlen($2), CONST_INT_TYPE, linenum);
+                                                                                t = lookup($2);
+                                                                                t->st_ival = stoi($6);
+                                                                                t->st_sval = strdup($6);
+                                                                                t->constant = 1;
+
+                                                                                Write("    iconst_0\n");
 
                                                                                 bufIndex++;
                                                                             }
