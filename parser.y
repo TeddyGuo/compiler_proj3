@@ -142,6 +142,8 @@ int local_counter[STRSIZE]; // record the local values
 int sign = 0; // OR = 1, AND = 2, EXCLAMATION = 3
 short ifsign = 0; // for bool_exp sign
 
+int operand = 0; // operand sign
+
 void yyerror(char* msg);
 void judge(list_t*, list_t*, char*, char arg[STRSIZE][STRSIZE], char*, char*); // judge should Write what king of sentences into file
 %}
@@ -197,6 +199,10 @@ void judge(list_t*, list_t*, char*, char arg[STRSIZE][STRSIZE], char*, char*); /
 program:        functions
                 | global_declaration functions
                 ;
+SEMI:           SEMICOLON   {
+                                operand = 0; // reset to zero
+                            }
+                ;
 
 global_declaration:     global_declaration constant_declaration
                         | global_declaration glob_variable_declaration
@@ -232,7 +238,7 @@ start:          L_B                                                 {
                                                                     }
                 ;
 
-constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
+constant_declaration:   LET ID ASSIGN integer_exp SEMI         {
                                                                     list_t* t = lookup($2);
 
                                                                     if (t == NULL)
@@ -250,7 +256,7 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
 
                                                                     }
-                        | LET ID ASSIGN TRUE SEMICOLON              {
+                        | LET ID ASSIGN TRUE SEMI              {
                                                                     list_t* t = lookup($2);
 
                                                                     if (t == NULL)
@@ -268,7 +274,7 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
 
                                                                     }
-                        | LET ID ASSIGN FALSE SEMICOLON             {
+                        | LET ID ASSIGN FALSE SEMI             {
                                                                     list_t* t = lookup($2);
 
                                                                     if (t == NULL)
@@ -285,7 +291,7 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                     }
-                        | LET ID ASSIGN string_exp SEMICOLON        {
+                        | LET ID ASSIGN string_exp SEMI        {
                                                                     list_t* t = lookup($2);
 
                                                                     if (t == NULL)
@@ -301,7 +307,7 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                     }
                                                                     else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                     }   
-                        | LET ID COLON INT ASSIGN integer_exp SEMICOLON     {
+                        | LET ID COLON INT ASSIGN integer_exp SEMI     {
                                                                             list_t* t = lookup($2);
 
                                                                             if (t == NULL)
@@ -318,7 +324,7 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                             }
                                                                             else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                             }
-                        | LET ID COLON BOOL ASSIGN TRUE SEMICOLON           {
+                        | LET ID COLON BOOL ASSIGN TRUE SEMI           {
                                                                             list_t* t = lookup($2);
 
                                                                             if (t == NULL)
@@ -335,7 +341,7 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                             }
                                                                             else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                             }
-                        | LET ID COLON BOOL ASSIGN FALSE SEMICOLON          {
+                        | LET ID COLON BOOL ASSIGN FALSE SEMI          {
                                                                             list_t* t = lookup($2);
 
                                                                             if (t == NULL)
@@ -352,7 +358,7 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                             }
                                                                             else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                             }
-                        | LET ID COLON STR ASSIGN string_exp SEMICOLON      {
+                        | LET ID COLON STR ASSIGN string_exp SEMI      {
                                                                             list_t* t = lookup($2);
 
                                                                             if (t == NULL)
@@ -370,7 +376,7 @@ constant_declaration:   LET ID ASSIGN integer_exp SEMICOLON         {
                                                                             }
                         ;
 
-glob_variable_declaration:   LET MUT ID SEMICOLON                       {
+glob_variable_declaration:   LET MUT ID SEMI                       {
                                                                         list_t* t = lookup($3);
 
                                                                         if (t == NULL && cur_scope == 0)
@@ -385,7 +391,7 @@ glob_variable_declaration:   LET MUT ID SEMICOLON                       {
 
                                                                         
                                                                         }
-                        | LET MUT ID COLON INT SEMICOLON                {
+                        | LET MUT ID COLON INT SEMI                {
                                                                         list_t* t = lookup($3);
 
                                                                         if (t == NULL && cur_scope == 0)
@@ -400,7 +406,7 @@ glob_variable_declaration:   LET MUT ID SEMICOLON                       {
 
                                                                         
                                                                         }
-                        | LET MUT ID ASSIGN integer_exp SEMICOLON       {
+                        | LET MUT ID ASSIGN integer_exp SEMI       {
                                                                         list_t* t = lookup($3);
 
                                                                         if (t == NULL && cur_scope == 0)
@@ -415,7 +421,7 @@ glob_variable_declaration:   LET MUT ID SEMICOLON                       {
                                                                         }
                                                                         else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                         }        
-                        | LET MUT ID COLON INT ASSIGN integer_exp SEMICOLON     {
+                        | LET MUT ID COLON INT ASSIGN integer_exp SEMI     {
                                                                                 list_t* t = lookup($3);
 
                                                                                 if (t == NULL && cur_scope == 0)
@@ -429,7 +435,7 @@ glob_variable_declaration:   LET MUT ID SEMICOLON                       {
                                                                                 else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                                 }
                         ;
-local_variable_declaration:   LET MUT ID SEMICOLON                      {
+local_variable_declaration:   LET MUT ID SEMI                      {
                                                                         list_t* t = lookup($3);
 
                                                                         if (t == NULL)
@@ -455,7 +461,7 @@ local_variable_declaration:   LET MUT ID SEMICOLON                      {
 
                                                                         
                                                                         }
-                        | LET MUT ID COLON INT SEMICOLON                {
+                        | LET MUT ID COLON INT SEMI                {
                                                                         list_t* t = lookup($3);
 
                                                                         if (t == NULL)
@@ -481,7 +487,7 @@ local_variable_declaration:   LET MUT ID SEMICOLON                      {
 
                                                                         
                                                                         }
-                        | LET MUT ID ASSIGN integer_exp SEMICOLON       {
+                        | LET MUT ID ASSIGN integer_exp SEMI       {
                                                                         list_t* t = lookup($3);
 
                                                                         if (t == NULL)
@@ -514,7 +520,7 @@ local_variable_declaration:   LET MUT ID SEMICOLON                      {
                                                                         }
                                                                         else Trace("line %d: Redeclaration of identifier.\n", linenum);
                                                                         }        
-                        | LET MUT ID COLON INT ASSIGN integer_exp SEMICOLON     {
+                        | LET MUT ID COLON INT ASSIGN integer_exp SEMI     {
                                                                                 list_t* t = lookup($3);
 
                                                                                 if (t == NULL)
@@ -771,7 +777,7 @@ else_statements:    else_statements else_statement
                     | else_statement
                     ;
 
-statement:      ID ASSIGN integer_exp SEMICOLON                     {
+statement:      ID ASSIGN integer_exp SEMI                     {
                                                                     list_t* t = lookup($1);
                                                                     if (t != NULL && (t->st_type == INT_TYPE || t->st_type == UNDEF))
                                                                     {
@@ -821,7 +827,7 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                                     }
                                                                     else Trace("line %d: Identifier does not define.\n", linenum);
                                                                     }
-                | PRINT integer_exp SEMICOLON   {
+                | PRINT integer_exp SEMI   {
                                                 Write("    getstatic java.io.PrintStream java.lang.System.out\n");
 
                                                 list_t* t = lookup($2);
@@ -851,7 +857,7 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
 
                                                 bufIndex++;
                                                 }       
-                | PRINT string_exp SEMICOLON    {
+                | PRINT string_exp SEMI    {
                                                 Write("    getstatic java.io.PrintStream java.lang.System.out\n");
                                                 Write("    ldc "); Write($2); Write("\n");
                                                 Write("    invokevirtual void java.io.PrintStream.print(java.lang.String)\n");
@@ -861,7 +867,7 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                 
                                                 bufIndex++;
                                                 }
-                | PRINTLN integer_exp SEMICOLON {
+                | PRINTLN integer_exp SEMI {
                                                 Write("    getstatic java.io.PrintStream java.lang.System.out\n");
 
                                                 list_t* t = lookup($2);
@@ -892,7 +898,7 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                 
                                                 bufIndex++;
                                                 }
-                | PRINTLN string_exp SEMICOLON  {
+                | PRINTLN string_exp SEMI  {
                                                 Write("    getstatic java.io.PrintStream java.lang.System.out\n");
                                                 Write("    ldc "); Write($2); Write("\n");
                                                 Write("    invokevirtual void java.io.PrintStream.println(java.lang.String)\n");
@@ -902,7 +908,7 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                 
                                                 bufIndex++;
                                                 }
-                | RETURN SEMICOLON              {
+                | RETURN SEMI              {
                                                 Write("    return\n");
 
                                                 // put mark for buffer
@@ -910,7 +916,7 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                                                 
                                                 bufIndex++;
                                                 }
-                | RETURN integer_exp SEMICOLON  {
+                | RETURN integer_exp SEMI  {
                                                 Write("    ireturn\n");
 
                                                 // put mark for buffer
@@ -921,7 +927,7 @@ statement:      ID ASSIGN integer_exp SEMICOLON                     {
                 | conditional
                 | loop
                 ;
-else_statement: ID ASSIGN else_integer_exp SEMICOLON                {
+else_statement: ID ASSIGN else_integer_exp SEMI                {
                                                                     list_t* t = lookup($1);
                                                                     if (t != NULL && (t->st_type == INT_TYPE || t->st_type == UNDEF))
                                                                     {
@@ -971,7 +977,7 @@ else_statement: ID ASSIGN else_integer_exp SEMICOLON                {
                                                                     }
                                                                     else Trace("line %d: Identifier does not define.\n", linenum);
                                                                     }
-                | PRINT else_integer_exp SEMICOLON   {
+                | PRINT else_integer_exp SEMI   {
                                                 Write("    getstatic java.io.PrintStream java.lang.System.out\n");
 
                                                 list_t* t = lookup($2);
@@ -1001,7 +1007,7 @@ else_statement: ID ASSIGN else_integer_exp SEMICOLON                {
 
                                                 bufIndex++;
                                                 }       
-                | PRINT else_string_exp SEMICOLON    {
+                | PRINT else_string_exp SEMI    {
                                                 Write("    getstatic java.io.PrintStream java.lang.System.out\n");
                                                 Write("    ldc "); Write($2); Write("\n");
                                                 Write("    invokevirtual void java.io.PrintStream.print(java.lang.String)\n");
@@ -1011,7 +1017,7 @@ else_statement: ID ASSIGN else_integer_exp SEMICOLON                {
                                                 
                                                 bufIndex++;
                                                 }
-                | PRINTLN else_integer_exp SEMICOLON {
+                | PRINTLN else_integer_exp SEMI {
                                                 Write("    getstatic java.io.PrintStream java.lang.System.out\n");
 
                                                 list_t* t = lookup($2);
@@ -1042,7 +1048,7 @@ else_statement: ID ASSIGN else_integer_exp SEMICOLON                {
                                                 
                                                 bufIndex++;
                                                 }
-                | PRINTLN else_string_exp SEMICOLON  {
+                | PRINTLN else_string_exp SEMI  {
                                                 Write("    getstatic java.io.PrintStream java.lang.System.out\n");
                                                 Write("    ldc "); Write($2); Write("\n");
                                                 Write("    invokevirtual void java.io.PrintStream.println(java.lang.String)\n");
@@ -1280,7 +1286,11 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
                                                         
-                                                        judge(t1, t2, file, arg, $1, $3);
+                                                        if (operand == 0)
+                                                        {
+                                                            judge(t1, t2, file, arg, $1, $3);
+                                                            operand = 1;
+                                                        }
                                                         Write("    iadd\n");
 
                                                         // return part
@@ -1299,7 +1309,11 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
                                                         
-                                                        judge(t1, t2, file, arg, $1, $3);
+                                                        if (operand == 0)
+                                                        {
+                                                            judge(t1, t2, file, arg, $1, $3);
+                                                            operand = 1;
+                                                        }
 
                                                         Write("    isub\n");
 
@@ -1319,7 +1333,11 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
                                                         
-                                                        judge(t1, t2, file, arg, $1, $3);
+                                                        if (operand == 0)
+                                                        {
+                                                            judge(t1, t2, file, arg, $1, $3);
+                                                            operand = 1;
+                                                        }
 
                                                         Write("    imul\n");
 
@@ -1339,7 +1357,11 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
                                                         
-                                                        judge(t1, t2, file, arg, $1, $3);
+                                                        if (operand == 0)
+                                                        {
+                                                            judge(t1, t2, file, arg, $1, $3);
+                                                            operand = 1;
+                                                        }
 
                                                         Write("    idiv\n");
 
@@ -1363,8 +1385,11 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                         list_t* t1 = lookup($1);
                                                         list_t* t2 = lookup($3);
                                                         
-                                                        judge(t1, t2, file, arg, $1, $3);
-
+                                                        if (operand == 0)
+                                                        {
+                                                            judge(t1, t2, file, arg, $1, $3);
+                                                            operand = 1;
+                                                        }
                                                         Write("    irem\n");
 
                                                         // return part
@@ -1445,7 +1470,11 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
+                                                if (operand == 0)
+                                                {
+                                                    judge(t1, t2, file, arg, $1, $3);
+                                                    operand = 1;
+                                                }
 
                                                 sign = ANDSIGN;
 
@@ -1470,7 +1499,11 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
+                                                if (operand == 0)
+                                                {
+                                                    judge(t1, t2, file, arg, $1, $3);
+                                                    operand = 1;
+                                                }
  
                                                 sign = ORSIGN;
 
@@ -1495,7 +1528,11 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
+                                                if (operand == 0)
+                                                {
+                                                    judge(t1, t2, file, arg, $1, $3);
+                                                    operand = 1;
+                                                }
 
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
@@ -1524,7 +1561,11 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
+                                                if (operand == 0)
+                                                {
+                                                    judge(t1, t2, file, arg, $1, $3);
+                                                    operand = 1;
+                                                }
 
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
@@ -1553,8 +1594,11 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
-
+                                                if (operand == 0)
+                                                {
+                                                    judge(t1, t2, file, arg, $1, $3);
+                                                    operand = 1;
+                                                }
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
                                                 Write("    ifeq L"); Write(itos(L, l)); Write("\n");
@@ -1582,7 +1626,11 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
+                                                if (operand == 0)
+                                                {
+                                                    judge(t1, t2, file, arg, $1, $3);
+                                                    operand = 1;
+                                                }
 
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
@@ -1611,7 +1659,11 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                     list_t* t1 = lookup($1);
                                                     list_t* t2 = lookup($3);
                                                     
-                                                    judge(t1, t2, file, arg, $1, $3);
+                                                    if (operand == 0)
+                                                    {
+                                                        judge(t1, t2, file, arg, $1, $3);
+                                                        operand = 1;
+                                                    }
 
                                                     Write("    isub\n");
                                                     char l[STRSIZE];
@@ -1640,7 +1692,11 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 list_t* t1 = lookup($1);
                                                 list_t* t2 = lookup($3);
                                                 
-                                                judge(t1, t2, file, arg, $1, $3);
+                                                if (operand == 0)
+                                                {
+                                                    judge(t1, t2, file, arg, $1, $3);
+                                                    operand = 1;
+                                                }
                                                 
                                                 Write("    isub\n");
                                                 char l[STRSIZE];
