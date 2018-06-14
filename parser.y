@@ -1729,7 +1729,22 @@ bool_exp:       bool_exp ADD bool_exp             {
 
                                                     $$ = strdup(t->st_name);
 
-                                                    
+                                                    /*
+                                                    if (operand != 0)
+                                                    {
+                                                        if (t != NULL && t->glob_flag == 1 && arg[t->counter] != NULL)
+                                                        {
+                                                            Write("    getstatic int "); Write(file); Write("."); Write(t->st_name); Write("\n");
+                                                        }
+                                                        else if (t != NULL && t->glob_flag == 0)
+                                                        {
+                                                            char a[STRSIZE];
+                                                            Write("    iload "); Write(itos(t->counter, a)); Write("\n");
+                                                        }
+                                                        bufIndex++;
+                                                    }
+                                                    */
+                                                
                                                 }
                                                 else
                                                 {
@@ -1738,6 +1753,14 @@ bool_exp:       bool_exp ADD bool_exp             {
                                                 }
                 | INTEGER                       {
                                                     $$ = strdup($1);
+
+                                                    /*
+                                                    if (operand != 0)
+                                                    {
+                                                        Write("    sipush "); Write($1); Write("\n");
+                                                        bufIndex++;
+                                                    }
+                                                    */
                                                 }
                 | TRUE                          {
                                                 char l[STRSIZE];
